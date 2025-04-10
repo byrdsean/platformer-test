@@ -16,7 +16,7 @@
   "main": "index.html",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc"
+    "build": "tsc && cp ./styles/styles.css ./dist"
   },
   "dependencies": {
     "typescript": "^5.8.3"
