@@ -40,11 +40,53 @@ class FramesPerSecondInstance {
     }
 }
 FramesPerSecondInstance.FPS = 60;
+class Knight {
+    constructor() {
+        this.currentFrame = 0;
+        this.canvasInstance = CanvasInstance.getInstance();
+    }
+    drawAttack() {
+        const attackAnimation = KnightAnimation.animations["attack"];
+        this.draw(attackAnimation);
+    }
+    drawIdle() {
+        const idleAnimation = KnightAnimation.animations["idle"];
+        this.draw(idleAnimation);
+    }
+    draw(animationFrame) {
+        const frameToDraw = this.currentFrame++ % animationFrame.numberOfFrames;
+        const sprite = new Image();
+        sprite.src = animationFrame.imageSource;
+        const ctx = this.canvasInstance.canvasContext;
+        ctx.drawImage(sprite, frameToDraw * animationFrame.frameWidth, 0, animationFrame.frameWidth, animationFrame.frameHeight, 0, 0, animationFrame.frameWidth, animationFrame.frameHeight);
+    }
+}
+class KnightAnimation {
+    constructor() { }
+}
+KnightAnimation.ASSET_FOLDER = "./dist/assets";
+KnightAnimation.SPRITE_WIDTH_PIXELS = 120;
+KnightAnimation.SPRITE_HEIGHT_PIXELS = 80;
+KnightAnimation.animations = {
+    attack: {
+        imageSource: `${KnightAnimation.ASSET_FOLDER}/_Attack.png`,
+        numberOfFrames: 4,
+        frameHeight: KnightAnimation.SPRITE_HEIGHT_PIXELS,
+        frameWidth: KnightAnimation.SPRITE_WIDTH_PIXELS,
+    },
+    idle: {
+        imageSource: `${KnightAnimation.ASSET_FOLDER}/_Idle.png`,
+        numberOfFrames: 10,
+        frameHeight: KnightAnimation.SPRITE_HEIGHT_PIXELS,
+        frameWidth: KnightAnimation.SPRITE_WIDTH_PIXELS,
+    },
+};
 class Platformer {
     constructor() {
         this.lastTimestamp = 0;
-        this.canvasInstance = CanvasInstance.getInstance();
         this.squareHeight = 0;
+        this.canvasInstance = CanvasInstance.getInstance();
+        this.knight = new Knight();
     }
     renderFrame() {
         const ctx = this.canvasInstance.canvasContext;
@@ -52,8 +94,7 @@ class Platformer {
         ctx.fillStyle = "red";
         ctx.fillRect(0, 0, this.canvasInstance.width, this.canvasInstance.height);
         ctx.save();
-        ctx.fillStyle = "blue";
-        ctx.fillRect(0, this.squareHeight++, 20, 20);
+        this.knight.drawAttack();
         ctx.restore();
     }
     shouldRender(timestamp) {
