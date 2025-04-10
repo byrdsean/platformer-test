@@ -1,6 +1,12 @@
 class Platformer {
   private lastTimestamp = 0;
-  private canvasInstance = CanvasInstance.getInstance();
+  private canvasInstance: Canvas;
+  private knight: Knight;
+
+  constructor() {
+    this.canvasInstance = CanvasInstance.getInstance();
+    this.knight = new Knight();
+  }
 
   private squareHeight = 0;
   renderFrame() {
@@ -12,8 +18,7 @@ class Platformer {
     ctx.fillRect(0, 0, this.canvasInstance.width, this.canvasInstance.height);
 
     ctx.save();
-    ctx.fillStyle = "blue";
-    ctx.fillRect(0, this.squareHeight++, 20, 20);
+    this.knight.drawAttack();
     ctx.restore();
   }
 
