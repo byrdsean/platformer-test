@@ -1,0 +1,24 @@
+{
+  "name": "platformer-test",
+  "version": "1.0.0",
+  "description": "Test repo to create a simple platformer level.",
+  "homepage": "https://github.com/byrdsean/platformer-test#readme",
+  "bugs": {
+    "url": "https://github.com/byrdsean/platformer-test/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/byrdsean/platformer-test.git"
+  },
+  "license": "ISC",
+  "author": "Sean Byrd",
+  "type": "commonjs",
+  "main": "index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "typescript": "^5.8.3"
+  }
+}
