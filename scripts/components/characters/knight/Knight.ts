@@ -24,9 +24,11 @@ class Knight {
 
   private draw(animationFrame: AnimationFrame) {
     const currentTimestamp = Date.now();
-    const shouldDrawNextFrame = this.WAIT_FOR_NEXT_RENDER_MILLISECONDS <= currentTimestamp - this.lastAnimationTimestamp;
+    const shouldDrawNextFrame =
+      this.WAIT_FOR_NEXT_RENDER_MILLISECONDS <=
+      currentTimestamp - this.lastAnimationTimestamp;
 
-    if(shouldDrawNextFrame) {
+    if (shouldDrawNextFrame) {
       this.currentFrame++;
       this.lastAnimationTimestamp = currentTimestamp;
     }
