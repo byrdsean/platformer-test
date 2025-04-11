@@ -9,13 +9,11 @@ class FramesPerSecondInstance {
 
     const millisecondsPerFrame = 1000 / FramesPerSecondInstance.FPS;
     const minimumMillisecondsToRender = Math.floor(millisecondsPerFrame) - 1;
-    const maximumMillisecondsToRender = Math.ceil(millisecondsPerFrame) + 1;
 
     const newFramesPerSecond = {
       fps: this.FPS,
       millisecondsPerFrame,
       minimumMillisecondsToRender,
-      maximumMillisecondsToRender,
     };
     this.framesPerSecond = newFramesPerSecond;
 
