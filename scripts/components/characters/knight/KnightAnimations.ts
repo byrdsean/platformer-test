@@ -1,5 +1,5 @@
 class KnightAnimations {
-  private readonly ASSET_FOLDER = "./dist/assets/knight";
+  private readonly ASSET_FOLDER = "./dist/images/knight";
   private readonly SPRITE_WIDTH_PIXELS = 120;
   private readonly SPRITE_HEIGHT_PIXELS = 80;
 
