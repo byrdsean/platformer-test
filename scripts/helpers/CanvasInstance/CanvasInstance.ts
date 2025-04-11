@@ -12,8 +12,8 @@ class CanvasInstance {
     const body = document.getElementById("body")! as HTMLElement;
     const bodyBoundingClientRect = body.getBoundingClientRect();
 
-    const height = Math.floor(bodyBoundingClientRect.height);
-    const width = Math.floor(bodyBoundingClientRect.width);
+    const height = Math.ceil(bodyBoundingClientRect.height);
+    const width = Math.ceil(bodyBoundingClientRect.width);
 
     const gameScreen: HTMLCanvasElement = document.getElementById(
       CanvasInstance.GAME_SCREEN_ID

@@ -7,8 +7,8 @@ class CanvasInstance {
     static getNewInstance() {
         const body = document.getElementById("body");
         const bodyBoundingClientRect = body.getBoundingClientRect();
-        const height = Math.floor(bodyBoundingClientRect.height);
-        const width = Math.floor(bodyBoundingClientRect.width);
+        const height = Math.ceil(bodyBoundingClientRect.height);
+        const width = Math.ceil(bodyBoundingClientRect.width);
         const gameScreen = document.getElementById(CanvasInstance.GAME_SCREEN_ID);
         gameScreen.height = height;
         gameScreen.width = width;
@@ -57,7 +57,8 @@ class Knight {
     }
     draw(animationFrame) {
         const currentTimestamp = Date.now();
-        const shouldDrawNextFrame = this.WAIT_FOR_NEXT_RENDER_MILLISECONDS <= currentTimestamp - this.lastAnimationTimestamp;
+        const shouldDrawNextFrame = this.WAIT_FOR_NEXT_RENDER_MILLISECONDS <=
+            currentTimestamp - this.lastAnimationTimestamp;
         if (shouldDrawNextFrame) {
             this.currentFrame++;
             this.lastAnimationTimestamp = currentTimestamp;
@@ -69,7 +70,7 @@ class Knight {
 }
 class KnightAnimations {
     constructor() {
-        this.ASSET_FOLDER = "./dist/assets";
+        this.ASSET_FOLDER = "./dist/assets/knight";
         this.SPRITE_WIDTH_PIXELS = 120;
         this.SPRITE_HEIGHT_PIXELS = 80;
     }
@@ -78,7 +79,7 @@ class KnightAnimations {
         const idleAnimation = this.buildAnimationFrame("_Idle.png", 10);
         return {
             attack: attackAnimation,
-            idle: idleAnimation
+            idle: idleAnimation,
         };
     }
     buildAnimationFrame(file, numberOfFrames) {
@@ -124,18 +125,23 @@ class Platformer {
         this.isPaused = false;
         this.canvasInstance = CanvasInstance.getInstance();
         this.knight = new Knight();
-        const keyboardControls = new KeyboardControls(() => { this.togglePause(); });
-        keyboardControls.addKeyPressedDown();
+        // const keyboardControls = new KeyboardControls(() => {
+        //   this.togglePause();
+        // });
+        // keyboardControls.addKeyPressedDown();
     }
     togglePause() {
-        this.isPaused = !this.isPaused;
+        if (this.isPaused) {
+            this.disablePaused();
+        }
+        else {
+            this.enablePaused();
+        }
     }
     enablePaused() {
-        console.log("enablePaused");
         this.isPaused = true;
     }
     disablePaused() {
-        console.log("disablePaused");
         this.isPaused = false;
     }
     resizeCanvas() {
@@ -156,7 +162,7 @@ class Platformer {
     shouldRenderFrame(timestamp) {
         if (timestamp === 0)
             return false;
-        if (this.lastTimestamp === 0 || this.isPaused) {
+        if (this.lastTimestamp === 0) {
             this.lastTimestamp = timestamp;
             return false;
         }
@@ -179,13 +185,8 @@ window.addEventListener("resize", () => {
     platformer.enablePaused();
     platformer.resizeCanvas();
 });
-document.addEventListener("visibilitychange", (e) => {
-    switch (document.visibilityState) {
-        case "hidden":
-            platformer.enablePaused();
-            break;
-        case "visible":
-            // platformer.disablePaused();
-            break;
+document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+        platformer.enablePaused();
     }
 });
