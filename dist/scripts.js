@@ -75,7 +75,7 @@ class KnightAnimations {
         this.SPRITE_HEIGHT_PIXELS = 80;
     }
     getAnimations() {
-        const attackAnimation = this.buildAnimationFrame("_Attack.png", 4);
+        const attackAnimation = this.buildAnimationFrame("attack.png", 4);
         const idleAnimation = this.buildAnimationFrame("_Idle.png", 10);
         return {
             attack: attackAnimation,

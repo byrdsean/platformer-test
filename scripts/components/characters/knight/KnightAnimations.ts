@@ -6,7 +6,7 @@ class KnightAnimations {
   public constructor() {}
 
   getAnimations(): KnightAnimationFrames {
-    const attackAnimation = this.buildAnimationFrame("_Attack.png", 4);
+    const attackAnimation = this.buildAnimationFrame("attack.png", 4);
     const idleAnimation = this.buildAnimationFrame("_Idle.png", 10);
     return {
       attack: attackAnimation,
