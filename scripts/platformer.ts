@@ -8,23 +8,25 @@ class Platformer {
     this.canvasInstance = CanvasInstance.getInstance();
     this.knight = new Knight();
 
-    const keyboardControls = new KeyboardControls(() => {
-      this.togglePause();
-    });
-    keyboardControls.addKeyPressedDown();
+    // const keyboardControls = new KeyboardControls(() => {
+    //   this.togglePause();
+    // });
+    // keyboardControls.addKeyPressedDown();
   }
 
   togglePause() {
-    this.isPaused = !this.isPaused;
+    if (this.isPaused) {
+      this.disablePaused();
+    } else {
+      this.enablePaused();
+    }
   }
 
   enablePaused() {
-    console.log("enablePaused");
     this.isPaused = true;
   }
 
   disablePaused() {
-    console.log("disablePaused");
     this.isPaused = false;
   }
 
@@ -36,7 +38,6 @@ class Platformer {
     if (!this.shouldRenderFrame(timestamp)) return;
 
     const ctx = this.canvasInstance.canvasContext;
-
     ctx.clearRect(0, 0, this.canvasInstance.width, this.canvasInstance.height);
 
     ctx.fillStyle = "red";
@@ -51,7 +52,7 @@ class Platformer {
   private shouldRenderFrame(timestamp: number): boolean {
     if (timestamp === 0) return false;
 
-    if (this.lastTimestamp === 0 || this.isPaused) {
+    if (this.lastTimestamp === 0) {
       this.lastTimestamp = timestamp;
       return false;
     }
@@ -85,13 +86,8 @@ window.addEventListener("resize", () => {
   platformer.resizeCanvas();
 });
 
-document.addEventListener("visibilitychange", (e) => {
-  switch (document.visibilityState) {
-    case "hidden":
-      platformer.enablePaused();
-      break;
-    case "visible":
-      // platformer.disablePaused();
-      break;
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") {
+    platformer.enablePaused();
   }
 });
