@@ -1,5 +1,5 @@
 interface AnimationFrame {
-  imageSource: string;
+  imageSource: HTMLImageElement;
   numberOfFrames: number;
   frameHeight: number;
   frameWidth: number;
