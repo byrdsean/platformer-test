@@ -1,4 +1,4 @@
 interface KnightAnimationFrames {
-    attack: AnimationFrame,
-    idle: AnimationFrame
+  attack: AnimationFrame;
+  idle: AnimationFrame;
 }

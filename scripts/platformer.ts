@@ -8,9 +8,9 @@ class Platformer {
     this.canvasInstance = CanvasInstance.getInstance();
     this.knight = new Knight();
 
-    const keyboardControls = new KeyboardControls(
-      () => { this.togglePause() }
-    );
+    const keyboardControls = new KeyboardControls(() => {
+      this.togglePause();
+    });
     keyboardControls.addKeyPressedDown();
   }
 
@@ -19,12 +19,12 @@ class Platformer {
   }
 
   enablePaused() {
-    console.log("enablePaused")
+    console.log("enablePaused");
     this.isPaused = true;
   }
 
   disablePaused() {
-    console.log("disablePaused")
+    console.log("disablePaused");
     this.isPaused = false;
   }
 
@@ -33,7 +33,7 @@ class Platformer {
   }
 
   renderFrame(timestamp: number) {
-    if (!this.shouldRenderFrame(timestamp)) return
+    if (!this.shouldRenderFrame(timestamp)) return;
 
     const ctx = this.canvasInstance.canvasContext;
 
@@ -49,7 +49,7 @@ class Platformer {
   }
 
   private shouldRenderFrame(timestamp: number): boolean {
-    if(timestamp === 0) return false;
+    if (timestamp === 0) return false;
 
     if (this.lastTimestamp === 0 || this.isPaused) {
       this.lastTimestamp = timestamp;
@@ -61,9 +61,10 @@ class Platformer {
     );
 
     const framesPerSecond = FramesPerSecondInstance.getFramesPerSecond();
-    const shouldRender = framesPerSecond.minimumMillisecondsToRender <= deltaTimeMilliseconds;
+    const shouldRender =
+      framesPerSecond.minimumMillisecondsToRender <= deltaTimeMilliseconds;
 
-    if(shouldRender) {
+    if (shouldRender) {
       this.lastTimestamp = timestamp;
     }
 
@@ -85,7 +86,7 @@ window.addEventListener("resize", () => {
 });
 
 document.addEventListener("visibilitychange", (e) => {
-  switch(document.visibilityState) {
+  switch (document.visibilityState) {
     case "hidden":
       platformer.enablePaused();
       break;
