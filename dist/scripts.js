@@ -70,7 +70,7 @@ class Knight {
 }
 class KnightAnimations {
     constructor() {
-        this.ASSET_FOLDER = "./dist/assets/knight";
+        this.ASSET_FOLDER = "./dist/images/knight";
         this.SPRITE_WIDTH_PIXELS = 120;
         this.SPRITE_HEIGHT_PIXELS = 80;
     }
