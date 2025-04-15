@@ -7,21 +7,38 @@ class KeyboardControls {
 
   addKeyPressedDown() {
     window.addEventListener("keydown", (e) => {
+      const currentComponent = InteractiveComponentInstance.getCurrentInteractiveComponent();
       switch (e.code) {
         case "ArrowLeft":
-          console.log("left");
+          currentComponent?.keydownHorizontal(HorizontalMovementEnum.LEFT);
           break;
         case "ArrowRight":
-          console.log("right");
+          currentComponent?.keydownHorizontal(HorizontalMovementEnum.RIGHT);
           break;
         case "ArrowUp":
-          console.log("up");
+          currentComponent?.keydownVertical(VerticalMovementEnum.UP);
           break;
         case "ArrowDown":
-          console.log("down");
+          currentComponent?.keydownVertical(VerticalMovementEnum.DOWN);
           break;
         case "KeyP":
           this.togglePause();
+          break;
+      }
+    });
+  }
+
+  addKeyPressedUp() {
+    window.addEventListener("keyup", (e) => {
+      const currentComponent = InteractiveComponentInstance.getCurrentInteractiveComponent();
+      switch (e.code) {
+        case "ArrowLeft":
+        case "ArrowRight":
+          currentComponent?.keyupHorizontal();
+          break;
+        case "ArrowUp":
+        case "ArrowDown":
+          currentComponent?.keyupVertical();
           break;
       }
     });

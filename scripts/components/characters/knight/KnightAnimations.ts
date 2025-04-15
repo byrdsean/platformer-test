@@ -8,9 +8,11 @@ class KnightAnimations {
   getAnimations(): KnightAnimationFrames {
     const attackAnimation = this.buildAnimationFrame("attack.png", 4);
     const idleAnimation = this.buildAnimationFrame("_Idle.png", 10);
+    const runAnimation = this.buildAnimationFrame("_Run.png", 10);
     return {
       attack: attackAnimation,
       idle: idleAnimation,
+      run: runAnimation,
     };
   }
 

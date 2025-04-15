@@ -38,17 +38,59 @@ class FramesPerSecondInstance {
     }
 }
 FramesPerSecondInstance.FPS = 60;
+class InteractiveComponentInstance {
+    constructor() { }
+    static getCurrentInteractiveComponent() {
+        return this.currentInteractiveComponent;
+    }
+    static setCurrentInteractiveComponent(currentInteractiveComponent) {
+        this.previousInteractiveComponent = this.currentInteractiveComponent;
+        this.currentInteractiveComponent = currentInteractiveComponent;
+    }
+}
+class AbstractMoveableEntity {
+    constructor() {
+        this.horizontalMovement = HorizontalMovementEnum.NONE;
+        this.verticalMovement = VerticalMovementEnum.NONE;
+    }
+    keydownVertical(movement) {
+        this.verticalMovement = movement;
+    }
+    keydownHorizontal(movement) {
+        this.horizontalMovement = movement;
+    }
+    keyupVertical() {
+        this.verticalMovement = VerticalMovementEnum.NONE;
+    }
+    keyupHorizontal() {
+        this.horizontalMovement = HorizontalMovementEnum.NONE;
+    }
+}
+var HorizontalMovementEnum;
+(function (HorizontalMovementEnum) {
+    HorizontalMovementEnum[HorizontalMovementEnum["NONE"] = 0] = "NONE";
+    HorizontalMovementEnum[HorizontalMovementEnum["LEFT"] = 1] = "LEFT";
+    HorizontalMovementEnum[HorizontalMovementEnum["RIGHT"] = 2] = "RIGHT";
+})(HorizontalMovementEnum || (HorizontalMovementEnum = {}));
+var VerticalMovementEnum;
+(function (VerticalMovementEnum) {
+    VerticalMovementEnum[VerticalMovementEnum["NONE"] = 0] = "NONE";
+    VerticalMovementEnum[VerticalMovementEnum["UP"] = 1] = "UP";
+    VerticalMovementEnum[VerticalMovementEnum["DOWN"] = 2] = "DOWN";
+})(VerticalMovementEnum || (VerticalMovementEnum = {}));
 class Platformer {
     constructor() {
         this.lastTimestamp = 0;
         this.canvasInstance = CanvasInstance.getInstance();
         this.knight = new Knight();
+        InteractiveComponentInstance.setCurrentInteractiveComponent(this.knight);
         this.pauseControls = new PauseControls();
         this.pauseControls.clearPauseFlag();
         const keyboardControls = new KeyboardControls(() => {
             this.pauseControls.togglePaused();
         });
         keyboardControls.addKeyPressedDown();
+        keyboardControls.addKeyPressedUp();
     }
     enablePaused() {
         this.pauseControls.setPause(true);
@@ -63,10 +105,7 @@ class Platformer {
         ctx.clearRect(0, 0, this.canvasInstance.width, this.canvasInstance.height);
         ctx.fillStyle = "red";
         ctx.fillRect(0, 0, this.canvasInstance.width, this.canvasInstance.height);
-        ctx.save();
-        this.knight.drawAttack();
-        // this.knight.drawIdle();
-        ctx.restore();
+        this.knight.draw();
     }
     shouldRenderFrame(timestamp) {
         if (timestamp === 0)
@@ -84,35 +123,75 @@ class Platformer {
         return shouldRender;
     }
 }
-class Knight {
+class Knight extends AbstractMoveableEntity {
     constructor() {
+        super();
         this.WAIT_FOR_NEXT_RENDER_MILLISECONDS = 100;
+        this.HORIZONTAL_MOVEMENT_SPEED_PX = 3;
         this.lastAnimationTimestamp = 0;
         this.currentFrame = 0;
+        this.horizontalPosition = 0;
         this.canvasInstance = CanvasInstance.getInstance();
         this.pauseControls = new PauseControls();
+        this.horizontalFacingDirection = HorizontalMovementEnum.RIGHT;
         const knightAnimations = new KnightAnimations();
         this.knightAnimationFrames = knightAnimations.getAnimations();
     }
-    drawAttack() {
-        const attackAnimation = this.knightAnimationFrames["attack"];
-        this.draw(attackAnimation);
+    draw() {
+        const animationName = this.horizontalMovement == HorizontalMovementEnum.NONE ? "idle" : "run";
+        const animation = this.knightAnimationFrames[animationName];
+        this.drawAnimation(animation);
     }
-    drawIdle() {
-        const idleAnimation = this.knightAnimationFrames["idle"];
-        this.draw(idleAnimation);
+    keydownHorizontal(movement) {
+        super.keydownHorizontal(movement);
+        if (movement == HorizontalMovementEnum.LEFT ||
+            movement == HorizontalMovementEnum.RIGHT) {
+            this.horizontalFacingDirection = movement;
+        }
     }
-    draw(animationFrame) {
+    drawAnimation(animationFrame) {
+        const frameToDraw = this.currentFrame % animationFrame.numberOfFrames;
+        const scaleAxis = this.getScaleXAxis(animationFrame.frameWidth);
+        if (!this.pauseControls.isPaused()) {
+            this.horizontalPosition += this.getHorizontalPixelsToMove();
+            this.updateNextFrameToDraw(animationFrame.numberOfFrames);
+        }
+        const ctx = this.canvasInstance.canvasContext;
+        ctx.save();
+        ctx.scale(scaleAxis.scaleX, scaleAxis.scaleY);
+        ctx.drawImage(animationFrame.imageSource, frameToDraw * animationFrame.frameWidth, 0, animationFrame.frameWidth, animationFrame.frameHeight, scaleAxis.xPosition, scaleAxis.yPosition, animationFrame.frameWidth, animationFrame.frameHeight);
+        ctx.restore();
+    }
+    getScaleXAxis(frameWidth) {
+        const isFacingLeft = this.horizontalFacingDirection == HorizontalMovementEnum.LEFT;
+        const scaleX = isFacingLeft ? -1 : 1;
+        const xOffset = isFacingLeft ? frameWidth : 0;
+        return {
+            scaleX: scaleX,
+            scaleY: 1,
+            xPosition: (this.horizontalPosition + xOffset) * scaleX,
+            yPosition: 0,
+        };
+    }
+    updateNextFrameToDraw(numberOfFrames) {
         const currentTimestamp = Date.now();
         const shouldDrawNextFrame = this.WAIT_FOR_NEXT_RENDER_MILLISECONDS <=
             currentTimestamp - this.lastAnimationTimestamp;
-        if (shouldDrawNextFrame && !this.pauseControls.isPaused()) {
-            this.currentFrame++;
-            this.lastAnimationTimestamp = currentTimestamp;
+        if (!shouldDrawNextFrame)
+            return;
+        this.currentFrame = ++this.currentFrame % numberOfFrames;
+        this.lastAnimationTimestamp = currentTimestamp;
+    }
+    getHorizontalPixelsToMove() {
+        if (this.horizontalMovement == HorizontalMovementEnum.LEFT) {
+            return -this.HORIZONTAL_MOVEMENT_SPEED_PX;
         }
-        const frameToDraw = this.currentFrame % animationFrame.numberOfFrames;
-        const ctx = this.canvasInstance.canvasContext;
-        ctx.drawImage(animationFrame.imageSource, frameToDraw * animationFrame.frameWidth, 0, animationFrame.frameWidth, animationFrame.frameHeight, 0, 0, animationFrame.frameWidth, animationFrame.frameHeight);
+        else if (this.horizontalMovement == HorizontalMovementEnum.RIGHT) {
+            return this.HORIZONTAL_MOVEMENT_SPEED_PX;
+        }
+        else {
+            return 0;
+        }
     }
 }
 class KnightAnimations {
@@ -124,9 +203,11 @@ class KnightAnimations {
     getAnimations() {
         const attackAnimation = this.buildAnimationFrame("attack.png", 4);
         const idleAnimation = this.buildAnimationFrame("_Idle.png", 10);
+        const runAnimation = this.buildAnimationFrame("_Run.png", 10);
         return {
             attack: attackAnimation,
             idle: idleAnimation,
+            run: runAnimation,
         };
     }
     buildAnimationFrame(file, numberOfFrames) {
@@ -146,21 +227,37 @@ class KeyboardControls {
     }
     addKeyPressedDown() {
         window.addEventListener("keydown", (e) => {
+            const currentComponent = InteractiveComponentInstance.getCurrentInteractiveComponent();
             switch (e.code) {
                 case "ArrowLeft":
-                    console.log("left");
+                    currentComponent?.keydownHorizontal(HorizontalMovementEnum.LEFT);
                     break;
                 case "ArrowRight":
-                    console.log("right");
+                    currentComponent?.keydownHorizontal(HorizontalMovementEnum.RIGHT);
                     break;
                 case "ArrowUp":
-                    console.log("up");
+                    currentComponent?.keydownVertical(VerticalMovementEnum.UP);
                     break;
                 case "ArrowDown":
-                    console.log("down");
+                    currentComponent?.keydownVertical(VerticalMovementEnum.DOWN);
                     break;
                 case "KeyP":
                     this.togglePause();
+                    break;
+            }
+        });
+    }
+    addKeyPressedUp() {
+        window.addEventListener("keyup", (e) => {
+            const currentComponent = InteractiveComponentInstance.getCurrentInteractiveComponent();
+            switch (e.code) {
+                case "ArrowLeft":
+                case "ArrowRight":
+                    currentComponent?.keyupHorizontal();
+                    break;
+                case "ArrowUp":
+                case "ArrowDown":
+                    currentComponent?.keyupVertical();
                     break;
             }
         });
@@ -169,18 +266,20 @@ class KeyboardControls {
 class PauseControls {
     constructor() {
         this.IS_PAUSED = "isPaused";
+        this.FALSE = "false";
+        this.TRUE = "true";
     }
     isPaused() {
-        const isPaused = localStorage.getItem(this.IS_PAUSED) || 'false';
-        return isPaused === 'true';
+        const isPaused = localStorage.getItem(this.IS_PAUSED) || this.FALSE;
+        return isPaused === this.TRUE;
     }
     togglePaused() {
-        const setPauseFlag = this.isPaused() ? "false" : "true";
+        const setPauseFlag = this.isPaused() ? this.FALSE : this.TRUE;
         localStorage.setItem(this.IS_PAUSED, setPauseFlag);
         return this.isPaused();
     }
     setPause(isPaused) {
-        localStorage.setItem(this.IS_PAUSED, isPaused ? "true" : "false");
+        localStorage.setItem(this.IS_PAUSED, isPaused ? this.TRUE : this.FALSE);
         return this.isPaused();
     }
     clearPauseFlag() {
@@ -192,7 +291,7 @@ window.addEventListener("resize", () => {
     platformer.enablePaused();
     platformer.resizeCanvas();
 });
-document.addEventListener("visibilitychange", () => {
+window.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") {
         platformer.enablePaused();
     }
