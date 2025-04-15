@@ -4,7 +4,7 @@ class FramesPerSecondInstance {
 
   private constructor() {}
 
-  public static getFramesPerSecond(): FramesPerSecond {
+  static getFramesPerSecond(): FramesPerSecond {
     if (this.framesPerSecond) return this.framesPerSecond;
 
     const millisecondsPerFrame = 1000 / FramesPerSecondInstance.FPS;

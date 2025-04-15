@@ -4,11 +4,11 @@ class CanvasInstance {
 
   private constructor() {}
 
-  public static getInstance(): Canvas {
+  static getInstance(): Canvas {
     return this.instance ? this.instance : this.getNewInstance();
   }
 
-  public static getNewInstance(): Canvas {
+  static getNewInstance(): Canvas {
     const body = document.getElementById("body")! as HTMLElement;
     const bodyBoundingClientRect = body.getBoundingClientRect();
 

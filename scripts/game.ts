@@ -5,7 +5,7 @@ window.addEventListener("resize", () => {
   platformer.resizeCanvas();
 });
 
-document.addEventListener("visibilitychange", () => {
+window.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "hidden") {
     platformer.enablePaused();
   }

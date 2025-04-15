@@ -7,6 +7,7 @@ class Platformer {
   constructor() {
     this.canvasInstance = CanvasInstance.getInstance();
     this.knight = new Knight();
+    InteractiveComponentInstance.setCurrentInteractiveComponent(this.knight);
 
     this.pauseControls = new PauseControls();
     this.pauseControls.clearPauseFlag();
@@ -15,6 +16,7 @@ class Platformer {
       this.pauseControls.togglePaused();
     });
     keyboardControls.addKeyPressedDown();
+    keyboardControls.addKeyPressedUp();
   }
 
   enablePaused() {
@@ -34,10 +36,7 @@ class Platformer {
     ctx.fillStyle = "red";
     ctx.fillRect(0, 0, this.canvasInstance.width, this.canvasInstance.height);
 
-    ctx.save();
-    this.knight.drawAttack();
-    // this.knight.drawIdle();
-    ctx.restore();
+    this.knight.draw();
   }
 
   private shouldRenderFrame(timestamp: number): boolean {
