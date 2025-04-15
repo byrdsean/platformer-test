@@ -38,12 +38,59 @@ class FramesPerSecondInstance {
     }
 }
 FramesPerSecondInstance.FPS = 60;
+class Platformer {
+    constructor() {
+        this.lastTimestamp = 0;
+        this.canvasInstance = CanvasInstance.getInstance();
+        this.knight = new Knight();
+        this.pauseControls = new PauseControls();
+        this.pauseControls.clearPauseFlag();
+        const keyboardControls = new KeyboardControls(() => {
+            this.pauseControls.togglePaused();
+        });
+        keyboardControls.addKeyPressedDown();
+    }
+    enablePaused() {
+        this.pauseControls.setPause(true);
+    }
+    resizeCanvas() {
+        this.canvasInstance = CanvasInstance.getNewInstance();
+    }
+    renderFrame(timestamp) {
+        if (!this.shouldRenderFrame(timestamp))
+            return;
+        const ctx = this.canvasInstance.canvasContext;
+        ctx.clearRect(0, 0, this.canvasInstance.width, this.canvasInstance.height);
+        ctx.fillStyle = "red";
+        ctx.fillRect(0, 0, this.canvasInstance.width, this.canvasInstance.height);
+        ctx.save();
+        this.knight.drawAttack();
+        // this.knight.drawIdle();
+        ctx.restore();
+    }
+    shouldRenderFrame(timestamp) {
+        if (timestamp === 0)
+            return false;
+        if (this.lastTimestamp === 0) {
+            this.lastTimestamp = timestamp;
+            return false;
+        }
+        const deltaTimeMilliseconds = Math.floor(timestamp - this.lastTimestamp);
+        const framesPerSecond = FramesPerSecondInstance.getFramesPerSecond();
+        const shouldRender = framesPerSecond.minimumMillisecondsToRender <= deltaTimeMilliseconds;
+        if (shouldRender) {
+            this.lastTimestamp = timestamp;
+        }
+        return shouldRender;
+    }
+}
 class Knight {
     constructor() {
         this.WAIT_FOR_NEXT_RENDER_MILLISECONDS = 100;
         this.lastAnimationTimestamp = 0;
         this.currentFrame = 0;
         this.canvasInstance = CanvasInstance.getInstance();
+        this.pauseControls = new PauseControls();
         const knightAnimations = new KnightAnimations();
         this.knightAnimationFrames = knightAnimations.getAnimations();
     }
@@ -59,7 +106,7 @@ class Knight {
         const currentTimestamp = Date.now();
         const shouldDrawNextFrame = this.WAIT_FOR_NEXT_RENDER_MILLISECONDS <=
             currentTimestamp - this.lastAnimationTimestamp;
-        if (shouldDrawNextFrame) {
+        if (shouldDrawNextFrame && !this.pauseControls.isPaused()) {
             this.currentFrame++;
             this.lastAnimationTimestamp = currentTimestamp;
         }
@@ -119,68 +166,28 @@ class KeyboardControls {
         });
     }
 }
-class Platformer {
+class PauseControls {
     constructor() {
-        this.lastTimestamp = 0;
-        this.isPaused = false;
-        this.canvasInstance = CanvasInstance.getInstance();
-        this.knight = new Knight();
-        // const keyboardControls = new KeyboardControls(() => {
-        //   this.togglePause();
-        // });
-        // keyboardControls.addKeyPressedDown();
+        this.IS_PAUSED = "isPaused";
     }
-    togglePause() {
-        if (this.isPaused) {
-            this.disablePaused();
-        }
-        else {
-            this.enablePaused();
-        }
+    isPaused() {
+        const isPaused = localStorage.getItem(this.IS_PAUSED) || 'false';
+        return isPaused === 'true';
     }
-    enablePaused() {
-        this.isPaused = true;
+    togglePaused() {
+        const setPauseFlag = this.isPaused() ? "false" : "true";
+        localStorage.setItem(this.IS_PAUSED, setPauseFlag);
+        return this.isPaused();
     }
-    disablePaused() {
-        this.isPaused = false;
+    setPause(isPaused) {
+        localStorage.setItem(this.IS_PAUSED, isPaused ? "true" : "false");
+        return this.isPaused();
     }
-    resizeCanvas() {
-        this.canvasInstance = CanvasInstance.getNewInstance();
-    }
-    renderFrame(timestamp) {
-        if (!this.shouldRenderFrame(timestamp))
-            return;
-        const ctx = this.canvasInstance.canvasContext;
-        ctx.clearRect(0, 0, this.canvasInstance.width, this.canvasInstance.height);
-        ctx.fillStyle = "red";
-        ctx.fillRect(0, 0, this.canvasInstance.width, this.canvasInstance.height);
-        ctx.save();
-        this.knight.drawAttack();
-        // this.knight.drawIdle();
-        ctx.restore();
-    }
-    shouldRenderFrame(timestamp) {
-        if (timestamp === 0)
-            return false;
-        if (this.lastTimestamp === 0) {
-            this.lastTimestamp = timestamp;
-            return false;
-        }
-        const deltaTimeMilliseconds = Math.floor(timestamp - this.lastTimestamp);
-        const framesPerSecond = FramesPerSecondInstance.getFramesPerSecond();
-        const shouldRender = framesPerSecond.minimumMillisecondsToRender <= deltaTimeMilliseconds;
-        if (shouldRender) {
-            this.lastTimestamp = timestamp;
-        }
-        return shouldRender;
+    clearPauseFlag() {
+        localStorage.removeItem(this.IS_PAUSED);
     }
 }
 const platformer = new Platformer();
-function animate(timestamp) {
-    platformer.renderFrame(timestamp);
-    requestAnimationFrame(animate);
-}
-animate(0);
 window.addEventListener("resize", () => {
     platformer.enablePaused();
     platformer.resizeCanvas();
@@ -190,3 +197,8 @@ document.addEventListener("visibilitychange", () => {
         platformer.enablePaused();
     }
 });
+function animate(timestamp) {
+    platformer.renderFrame(timestamp);
+    requestAnimationFrame(animate);
+}
+animate(0);
