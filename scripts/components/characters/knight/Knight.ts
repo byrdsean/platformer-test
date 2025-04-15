@@ -4,9 +4,11 @@ class Knight {
   private currentFrame = 0;
   private canvasInstance: Canvas;
   private knightAnimationFrames: KnightAnimationFrames;
+  private pauseControls: PauseControls;
 
   constructor() {
     this.canvasInstance = CanvasInstance.getInstance();
+    this.pauseControls = new PauseControls();
 
     const knightAnimations = new KnightAnimations();
     this.knightAnimationFrames = knightAnimations.getAnimations();
@@ -28,7 +30,7 @@ class Knight {
       this.WAIT_FOR_NEXT_RENDER_MILLISECONDS <=
       currentTimestamp - this.lastAnimationTimestamp;
 
-    if (shouldDrawNextFrame) {
+    if (shouldDrawNextFrame && !this.pauseControls.isPaused()) {
       this.currentFrame++;
       this.lastAnimationTimestamp = currentTimestamp;
     }

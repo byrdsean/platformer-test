@@ -1,33 +1,24 @@
 class Platformer {
   private lastTimestamp = 0;
-  private isPaused = false;
   private canvasInstance: Canvas;
+  private pauseControls: PauseControls;
   private knight: Knight;
 
   constructor() {
     this.canvasInstance = CanvasInstance.getInstance();
     this.knight = new Knight();
 
-    // const keyboardControls = new KeyboardControls(() => {
-    //   this.togglePause();
-    // });
-    // keyboardControls.addKeyPressedDown();
-  }
+    this.pauseControls = new PauseControls();
+    this.pauseControls.clearPauseFlag();
 
-  togglePause() {
-    if (this.isPaused) {
-      this.disablePaused();
-    } else {
-      this.enablePaused();
-    }
+    const keyboardControls = new KeyboardControls(() => {
+      this.pauseControls.togglePaused();
+    });
+    keyboardControls.addKeyPressedDown();
   }
 
   enablePaused() {
-    this.isPaused = true;
-  }
-
-  disablePaused() {
-    this.isPaused = false;
+    this.pauseControls.setPause(true);
   }
 
   resizeCanvas() {
@@ -72,22 +63,3 @@ class Platformer {
     return shouldRender;
   }
 }
-
-const platformer = new Platformer();
-
-function animate(timestamp: number) {
-  platformer.renderFrame(timestamp);
-  requestAnimationFrame(animate);
-}
-animate(0);
-
-window.addEventListener("resize", () => {
-  platformer.enablePaused();
-  platformer.resizeCanvas();
-});
-
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "hidden") {
-    platformer.enablePaused();
-  }
-});
