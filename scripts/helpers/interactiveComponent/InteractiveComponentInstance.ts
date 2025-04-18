@@ -1,15 +1,15 @@
 class InteractiveComponentInstance {
-  private static currentInteractiveComponent: AbstractMoveableEntity | null;
-  private static previousInteractiveComponent: AbstractMoveableEntity | null;
+  private static currentInteractiveComponent: ControllableInterface | null;
+  private static previousInteractiveComponent: ControllableInterface | null;
 
   private constructor() {}
 
-  static getCurrentInteractiveComponent(): AbstractMoveableEntity | null {
+  static getCurrentInteractiveComponent(): ControllableInterface | null {
     return this.currentInteractiveComponent;
   }
 
   static setCurrentInteractiveComponent(
-    currentInteractiveComponent: AbstractMoveableEntity
+    currentInteractiveComponent: ControllableInterface
   ) {
     this.previousInteractiveComponent = this.currentInteractiveComponent;
     this.currentInteractiveComponent = currentInteractiveComponent;

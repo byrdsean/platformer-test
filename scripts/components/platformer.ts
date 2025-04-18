@@ -3,6 +3,7 @@ class Platformer {
   private canvasInstance: Canvas;
   private pauseControls: PauseControls;
   private knight: Knight;
+  private keyboardControls: KeyboardControls
 
   constructor() {
     this.canvasInstance = CanvasInstance.getInstance();
@@ -12,11 +13,11 @@ class Platformer {
     this.pauseControls = new PauseControls();
     this.pauseControls.clearPauseFlag();
 
-    const keyboardControls = new KeyboardControls(() => {
+    this.keyboardControls = new KeyboardControls(() => {
       this.pauseControls.togglePaused();
     });
-    keyboardControls.addKeyPressedDown();
-    keyboardControls.addKeyPressedUp();
+    this.keyboardControls.addKeyPressedDown();
+    this.keyboardControls.addKeyPressedUp();
   }
 
   enablePaused() {
@@ -36,7 +37,10 @@ class Platformer {
     ctx.fillStyle = "red";
     ctx.fillRect(0, 0, this.canvasInstance.width, this.canvasInstance.height);
 
-    this.knight.draw();
+    const interactiveComponent = InteractiveComponentInstance.getCurrentInteractiveComponent();
+    const keyboardButtons = this.keyboardControls.getKeyboardInputs();
+    interactiveComponent?.setInput(keyboardButtons);
+    interactiveComponent?.draw();
   }
 
   private shouldRenderFrame(timestamp: number): boolean {
