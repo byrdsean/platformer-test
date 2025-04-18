@@ -311,10 +311,11 @@ class RunState extends AbstractKnightState {
         if (this.pauseControls.isPaused()) {
             return null;
         }
-        if (!userInputs.left &&
+        const areMovementInputsFalse = !userInputs.left &&
             !userInputs.right &&
             !userInputs.up &&
-            !userInputs.down) {
+            !userInputs.down;
+        if (areMovementInputsFalse) {
             this.exit();
             return this.knight.states.idle;
         }

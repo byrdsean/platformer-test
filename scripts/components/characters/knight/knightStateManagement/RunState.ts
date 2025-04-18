@@ -12,12 +12,12 @@ class RunState extends AbstractKnightState {
       return null;
     }
 
-    if (
+    const areMovementInputsFalse =
       !userInputs.left &&
       !userInputs.right &&
       !userInputs.up &&
-      !userInputs.down
-    ) {
+      !userInputs.down;
+    if (areMovementInputsFalse) {
       this.exit();
       return this.knight.states.idle;
     }
