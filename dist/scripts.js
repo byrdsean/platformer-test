@@ -48,24 +48,6 @@ class InteractiveComponentInstance {
         this.currentInteractiveComponent = currentInteractiveComponent;
     }
 }
-class AbstractMoveableEntity {
-    constructor() {
-        this.horizontalMovement = HorizontalMovementEnum.NONE;
-        this.verticalMovement = VerticalMovementEnum.NONE;
-    }
-    keydownVertical(movement) {
-        this.verticalMovement = movement;
-    }
-    keydownHorizontal(movement) {
-        this.horizontalMovement = movement;
-    }
-    keyupVertical() {
-        this.verticalMovement = VerticalMovementEnum.NONE;
-    }
-    keyupHorizontal() {
-        this.horizontalMovement = HorizontalMovementEnum.NONE;
-    }
-}
 var HorizontalMovementEnum;
 (function (HorizontalMovementEnum) {
     HorizontalMovementEnum[HorizontalMovementEnum["NONE"] = 0] = "NONE";
@@ -86,11 +68,11 @@ class Platformer {
         InteractiveComponentInstance.setCurrentInteractiveComponent(this.knight);
         this.pauseControls = new PauseControls();
         this.pauseControls.clearPauseFlag();
-        const keyboardControls = new KeyboardControls(() => {
+        this.keyboardControls = new KeyboardControls(() => {
             this.pauseControls.togglePaused();
         });
-        keyboardControls.addKeyPressedDown();
-        keyboardControls.addKeyPressedUp();
+        this.keyboardControls.addKeyPressedDown();
+        this.keyboardControls.addKeyPressedUp();
     }
     enablePaused() {
         this.pauseControls.setPause(true);
@@ -105,7 +87,10 @@ class Platformer {
         ctx.clearRect(0, 0, this.canvasInstance.width, this.canvasInstance.height);
         ctx.fillStyle = "red";
         ctx.fillRect(0, 0, this.canvasInstance.width, this.canvasInstance.height);
-        this.knight.draw();
+        const interactiveComponent = InteractiveComponentInstance.getCurrentInteractiveComponent();
+        const keyboardButtons = this.keyboardControls.getKeyboardInputs();
+        interactiveComponent?.setInput(keyboardButtons);
+        interactiveComponent?.draw();
     }
     shouldRenderFrame(timestamp) {
         if (timestamp === 0)
@@ -123,94 +108,43 @@ class Platformer {
         return shouldRender;
     }
 }
-class Knight extends AbstractMoveableEntity {
+class Knight {
     constructor() {
-        super();
-        this.WAIT_FOR_NEXT_RENDER_MILLISECONDS = 100;
-        this.HORIZONTAL_MOVEMENT_SPEED_PX = 3;
-        this.lastAnimationTimestamp = 0;
-        this.currentFrame = 0;
         this.horizontalPosition = 0;
-        this.canvasInstance = CanvasInstance.getInstance();
-        this.pauseControls = new PauseControls();
         this.horizontalFacingDirection = HorizontalMovementEnum.RIGHT;
-        const knightAnimations = new KnightAnimations();
-        this.knightAnimationFrames = knightAnimations.getAnimations();
+        this.states = {
+            idle: new IdleState(this),
+            run: new RunState(this),
+            attack: new AttackState(this),
+        };
+        this.currentState = this.states.idle;
+    }
+    setInput(userInputs) {
+        const newState = this.currentState.input(userInputs);
+        this.updateCurrentState(newState);
     }
     draw() {
-        const animationName = this.horizontalMovement == HorizontalMovementEnum.NONE ? "idle" : "run";
-        const animation = this.knightAnimationFrames[animationName];
-        this.drawAnimation(animation);
+        const newState = this.currentState.update();
+        this.updateCurrentState(newState);
     }
-    keydownHorizontal(movement) {
-        super.keydownHorizontal(movement);
-        if (movement == HorizontalMovementEnum.LEFT ||
-            movement == HorizontalMovementEnum.RIGHT) {
-            this.horizontalFacingDirection = movement;
-        }
-    }
-    drawAnimation(animationFrame) {
-        const frameToDraw = this.currentFrame % animationFrame.numberOfFrames;
-        const scaleAxis = this.getScaleXAxis(animationFrame.frameWidth);
-        if (!this.pauseControls.isPaused()) {
-            this.horizontalPosition += this.getHorizontalPixelsToMove();
-            this.updateNextFrameToDraw(animationFrame.numberOfFrames);
-        }
-        const ctx = this.canvasInstance.canvasContext;
-        ctx.save();
-        ctx.scale(scaleAxis.scaleX, scaleAxis.scaleY);
-        ctx.drawImage(animationFrame.imageSource, frameToDraw * animationFrame.frameWidth, 0, animationFrame.frameWidth, animationFrame.frameHeight, scaleAxis.xPosition, scaleAxis.yPosition, animationFrame.frameWidth, animationFrame.frameHeight);
-        ctx.restore();
-    }
-    getScaleXAxis(frameWidth) {
-        const isFacingLeft = this.horizontalFacingDirection == HorizontalMovementEnum.LEFT;
-        const scaleX = isFacingLeft ? -1 : 1;
-        const xOffset = isFacingLeft ? frameWidth : 0;
-        return {
-            scaleX: scaleX,
-            scaleY: 1,
-            xPosition: (this.horizontalPosition + xOffset) * scaleX,
-            yPosition: 0,
-        };
-    }
-    updateNextFrameToDraw(numberOfFrames) {
-        const currentTimestamp = Date.now();
-        const shouldDrawNextFrame = this.WAIT_FOR_NEXT_RENDER_MILLISECONDS <=
-            currentTimestamp - this.lastAnimationTimestamp;
-        if (!shouldDrawNextFrame)
+    updateCurrentState(newState) {
+        if (!newState)
             return;
-        this.currentFrame = ++this.currentFrame % numberOfFrames;
-        this.lastAnimationTimestamp = currentTimestamp;
-    }
-    getHorizontalPixelsToMove() {
-        if (this.horizontalMovement == HorizontalMovementEnum.LEFT) {
-            return -this.HORIZONTAL_MOVEMENT_SPEED_PX;
-        }
-        else if (this.horizontalMovement == HorizontalMovementEnum.RIGHT) {
-            return this.HORIZONTAL_MOVEMENT_SPEED_PX;
-        }
-        else {
-            return 0;
-        }
+        this.currentState = newState;
     }
 }
 class KnightAnimations {
-    constructor() {
-        this.ASSET_FOLDER = "./dist/images/knight";
-        this.SPRITE_WIDTH_PIXELS = 120;
-        this.SPRITE_HEIGHT_PIXELS = 80;
+    constructor() { }
+    static getAttackAnimation() {
+        return this.buildAnimationFrame("attack.png", 4);
     }
-    getAnimations() {
-        const attackAnimation = this.buildAnimationFrame("attack.png", 4);
-        const idleAnimation = this.buildAnimationFrame("_Idle.png", 10);
-        const runAnimation = this.buildAnimationFrame("_Run.png", 10);
-        return {
-            attack: attackAnimation,
-            idle: idleAnimation,
-            run: runAnimation,
-        };
+    static getIdleAnimation() {
+        return this.buildAnimationFrame("idle.png", 10);
     }
-    buildAnimationFrame(file, numberOfFrames) {
+    static getRunAnimation() {
+        return this.buildAnimationFrame("run.png", 10);
+    }
+    static buildAnimationFrame(file, numberOfFrames) {
         const image = new Image();
         image.src = `${this.ASSET_FOLDER}/${file}`;
         return {
@@ -221,43 +155,206 @@ class KnightAnimations {
         };
     }
 }
+KnightAnimations.ASSET_FOLDER = "./dist/images/knight";
+KnightAnimations.SPRITE_WIDTH_PIXELS = 120;
+KnightAnimations.SPRITE_HEIGHT_PIXELS = 80;
+class AbstractKnightState {
+    constructor(knight, animation) {
+        this.currentFrame = 0;
+        this.lastAnimationTimestamp = 0;
+        this.waitForNextRenderMilliseconds = 100;
+        this.knight = knight;
+        this.animation = animation;
+        this.canvasInstance = CanvasInstance.getInstance();
+        this.pauseControls = new PauseControls();
+    }
+    draw() {
+        const frameToDraw = this.currentFrame % this.animation.numberOfFrames;
+        const scaleContextModel = this.getScaleContextModel();
+        if (this.shouldDrawNextFrame()) {
+            this.currentFrame = ++this.currentFrame % this.animation.numberOfFrames;
+        }
+        const ctx = this.canvasInstance.canvasContext;
+        ctx.save();
+        ctx.scale(scaleContextModel.scaleX, scaleContextModel.scaleY);
+        ctx.drawImage(this.animation.imageSource, frameToDraw * this.animation.frameWidth, 0, this.animation.frameWidth, this.animation.frameHeight, scaleContextModel.xPosition, scaleContextModel.yPosition, this.animation.frameWidth, this.animation.frameHeight);
+        ctx.restore();
+    }
+    getScaleContextModel() {
+        const isFacingLeft = this.knight.horizontalFacingDirection == HorizontalMovementEnum.LEFT;
+        const scaleX = isFacingLeft ? -1 : 1;
+        const xOffset = isFacingLeft ? this.animation.frameWidth : 0;
+        return {
+            scaleX: scaleX,
+            scaleY: 1,
+            xPosition: (this.knight.horizontalPosition + xOffset) * scaleX,
+            yPosition: 0,
+        };
+    }
+    shouldDrawNextFrame() {
+        if (this.pauseControls.isPaused())
+            return false;
+        const currentTimestamp = Date.now();
+        const shouldDrawNextFrame = this.waitForNextRenderMilliseconds <=
+            currentTimestamp - this.lastAnimationTimestamp;
+        if (shouldDrawNextFrame) {
+            this.lastAnimationTimestamp = currentTimestamp;
+        }
+        return shouldDrawNextFrame;
+    }
+}
+class AttackState extends AbstractKnightState {
+    constructor(knight) {
+        super(knight, KnightAnimations.getAttackAnimation());
+        this.startedAttack = false;
+        this.waitForNextRenderMilliseconds = AttackState.WAIT_FOR_NEXT_RENDER_MILLISECONDS;
+    }
+    input(userInputs) {
+        if (this.startedAttack && this.currentFrame == 0) {
+            this.exit();
+            return this.knight.states.idle;
+        }
+        return null;
+    }
+    update() {
+        this.startedAttack = true;
+        this.draw();
+        return null;
+    }
+    exit() {
+        this.currentFrame = 0;
+        this.startedAttack = false;
+    }
+}
+AttackState.ANIMATION_NAME = "attack";
+AttackState.WAIT_FOR_NEXT_RENDER_MILLISECONDS = 50;
+class IdleState extends AbstractKnightState {
+    constructor(knight) {
+        super(knight, KnightAnimations.getIdleAnimation());
+    }
+    input(userInputs) {
+        if (this.pauseControls.isPaused()) {
+            return null;
+        }
+        if (userInputs.left || userInputs.right) {
+            this.exit();
+            return this.knight.states.run;
+        }
+        if (userInputs.attack) {
+            this.exit();
+            return this.knight.states.attack;
+        }
+        return null;
+    }
+    update() {
+        this.draw();
+        return null;
+    }
+    exit() {
+        this.currentFrame = 0;
+    }
+}
+IdleState.ANIMATION_NAME = "idle";
+class RunState extends AbstractKnightState {
+    constructor(knight) {
+        super(knight, KnightAnimations.getRunAnimation());
+        this.HORIZONTAL_MOVEMENT_SPEED_PX = 3;
+        this.horizontalMovement = HorizontalMovementEnum.NONE;
+    }
+    input(userInputs) {
+        if (this.pauseControls.isPaused()) {
+            return null;
+        }
+        if (!userInputs.left && !userInputs.right && !userInputs.up && !userInputs.down) {
+            this.exit();
+            return this.knight.states.idle;
+        }
+        if (userInputs.left) {
+            this.horizontalMovement = HorizontalMovementEnum.LEFT;
+            this.knight.horizontalFacingDirection = HorizontalMovementEnum.LEFT;
+        }
+        else if (userInputs.right) {
+            this.horizontalMovement = HorizontalMovementEnum.RIGHT;
+            this.knight.horizontalFacingDirection = HorizontalMovementEnum.RIGHT;
+        }
+        if (userInputs.attack) {
+            this.exit();
+            return this.knight.states.attack;
+        }
+        return null;
+    }
+    update() {
+        if (!this.pauseControls.isPaused()) {
+            this.knight.horizontalPosition += this.getHorizontalPosDifference();
+        }
+        this.draw();
+        return null;
+    }
+    exit() {
+        this.currentFrame = 0;
+        this.horizontalMovement = HorizontalMovementEnum.NONE;
+    }
+    getHorizontalPosDifference() {
+        switch (this.horizontalMovement) {
+            case HorizontalMovementEnum.LEFT:
+                return -this.HORIZONTAL_MOVEMENT_SPEED_PX;
+            case HorizontalMovementEnum.RIGHT:
+                return this.HORIZONTAL_MOVEMENT_SPEED_PX;
+            default:
+                return 0;
+        }
+    }
+}
+RunState.ANIMATION_NAME = "run";
 class KeyboardControls {
     constructor(togglePause) {
         this.togglePause = togglePause;
+        this.userInputModel = { up: false, down: false, left: false, right: false, attack: false };
+    }
+    getKeyboardInputs() {
+        return this.userInputModel;
     }
     addKeyPressedDown() {
         window.addEventListener("keydown", (e) => {
-            const currentComponent = InteractiveComponentInstance.getCurrentInteractiveComponent();
             switch (e.code) {
-                case "ArrowLeft":
-                    currentComponent?.keydownHorizontal(HorizontalMovementEnum.LEFT);
-                    break;
-                case "ArrowRight":
-                    currentComponent?.keydownHorizontal(HorizontalMovementEnum.RIGHT);
-                    break;
-                case "ArrowUp":
-                    currentComponent?.keydownVertical(VerticalMovementEnum.UP);
-                    break;
-                case "ArrowDown":
-                    currentComponent?.keydownVertical(VerticalMovementEnum.DOWN);
-                    break;
                 case "KeyP":
                     this.togglePause();
+                    break;
+                case "ArrowLeft":
+                    this.userInputModel = { ...this.userInputModel, left: true };
+                    break;
+                case "ArrowRight":
+                    this.userInputModel = { ...this.userInputModel, right: true };
+                    break;
+                case "ArrowUp":
+                    this.userInputModel = { ...this.userInputModel, up: true };
+                    break;
+                case "ArrowDown":
+                    this.userInputModel = { ...this.userInputModel, down: true };
+                    break;
+                case "Space":
+                    this.userInputModel = { ...this.userInputModel, attack: true };
                     break;
             }
         });
     }
     addKeyPressedUp() {
         window.addEventListener("keyup", (e) => {
-            const currentComponent = InteractiveComponentInstance.getCurrentInteractiveComponent();
             switch (e.code) {
                 case "ArrowLeft":
+                    this.userInputModel = { ...this.userInputModel, left: false };
+                    break;
                 case "ArrowRight":
-                    currentComponent?.keyupHorizontal();
+                    this.userInputModel = { ...this.userInputModel, right: false };
                     break;
                 case "ArrowUp":
+                    this.userInputModel = { ...this.userInputModel, up: false };
+                    break;
                 case "ArrowDown":
-                    currentComponent?.keyupVertical();
+                    this.userInputModel = { ...this.userInputModel, down: false };
+                    break;
+                case "Space":
+                    this.userInputModel = { ...this.userInputModel, attack: false };
                     break;
             }
         });
