@@ -48,6 +48,14 @@ class InteractiveComponentInstance {
         this.currentInteractiveComponent = currentInteractiveComponent;
     }
 }
+class AbstractMoveableEntity {
+    constructor(horizontalFacingDirection) {
+        this.gravity = 5;
+        this.horizontalPosition = 0;
+        this.verticalPosition = 0;
+        this.horizontalFacingDirection = horizontalFacingDirection;
+    }
+}
 var HorizontalMovementEnum;
 (function (HorizontalMovementEnum) {
     HorizontalMovementEnum[HorizontalMovementEnum["NONE"] = 0] = "NONE";
@@ -108,16 +116,16 @@ class Platformer {
         return shouldRender;
     }
 }
-class Knight {
+class Knight extends AbstractMoveableEntity {
     constructor() {
-        this.horizontalPosition = 0;
-        this.horizontalFacingDirection = HorizontalMovementEnum.RIGHT;
+        super(HorizontalMovementEnum.RIGHT);
         this.states = {
             idle: new IdleState(this),
             run: new RunState(this),
             attack: new AttackState(this),
+            fall: new FallState(this),
         };
-        this.currentState = this.states.idle;
+        this.currentState = this.states.fall;
     }
     setInput(userInputs) {
         const newState = this.currentState.input(userInputs);
@@ -143,6 +151,9 @@ class KnightAnimations {
     }
     static getRunAnimation() {
         return this.buildAnimationFrame("run.png", 10);
+    }
+    static getFallAnimation() {
+        return this.buildAnimationFrame("fall.png", 3);
     }
     static buildAnimationFrame(file, numberOfFrames) {
         const image = new Image();
@@ -188,7 +199,7 @@ class AbstractKnightState {
             scaleX: scaleX,
             scaleY: 1,
             xPosition: (this.knight.horizontalPosition + xOffset) * scaleX,
-            yPosition: 0,
+            yPosition: this.knight.verticalPosition,
         };
     }
     shouldDrawNextFrame() {
@@ -207,7 +218,8 @@ class AttackState extends AbstractKnightState {
     constructor(knight) {
         super(knight, KnightAnimations.getAttackAnimation());
         this.startedAttack = false;
-        this.waitForNextRenderMilliseconds = AttackState.WAIT_FOR_NEXT_RENDER_MILLISECONDS;
+        this.waitForNextRenderMilliseconds =
+            AttackState.WAIT_FOR_NEXT_RENDER_MILLISECONDS;
     }
     input(userInputs) {
         if (this.startedAttack && this.currentFrame == 0) {
@@ -226,8 +238,43 @@ class AttackState extends AbstractKnightState {
         this.startedAttack = false;
     }
 }
-AttackState.ANIMATION_NAME = "attack";
 AttackState.WAIT_FOR_NEXT_RENDER_MILLISECONDS = 50;
+class FallState extends AbstractKnightState {
+    constructor(knight) {
+        super(knight, KnightAnimations.getFallAnimation());
+        const canvasInstance = CanvasInstance.getInstance();
+        this.gameHeight = canvasInstance.height;
+    }
+    input(userInputs) {
+        if (this.pauseControls.isPaused()) {
+            return null;
+        }
+        const lowerImageBound = this.getUpdatedVerticalPosition() + this.animation.frameHeight;
+        if (lowerImageBound >= this.gameHeight) {
+            this.exit();
+            return this.knight.states.idle;
+        }
+        return null;
+    }
+    update() {
+        this.knight.verticalPosition = this.getUpdatedVerticalPosition();
+        this.draw();
+        return null;
+    }
+    exit() {
+        this.currentFrame = 0;
+    }
+    getUpdatedVerticalPosition() {
+        const frameLowerVerticalPos = this.knight.verticalPosition + this.animation.frameHeight;
+        const distanceFromGameHeight = this.gameHeight - frameLowerVerticalPos;
+        if (distanceFromGameHeight >= this.knight.gravity) {
+            return this.knight.verticalPosition + this.knight.gravity;
+        }
+        else {
+            return this.knight.verticalPosition + distanceFromGameHeight;
+        }
+    }
+}
 class IdleState extends AbstractKnightState {
     constructor(knight) {
         super(knight, KnightAnimations.getIdleAnimation());
@@ -254,7 +301,6 @@ class IdleState extends AbstractKnightState {
         this.currentFrame = 0;
     }
 }
-IdleState.ANIMATION_NAME = "idle";
 class RunState extends AbstractKnightState {
     constructor(knight) {
         super(knight, KnightAnimations.getRunAnimation());
@@ -265,7 +311,10 @@ class RunState extends AbstractKnightState {
         if (this.pauseControls.isPaused()) {
             return null;
         }
-        if (!userInputs.left && !userInputs.right && !userInputs.up && !userInputs.down) {
+        if (!userInputs.left &&
+            !userInputs.right &&
+            !userInputs.up &&
+            !userInputs.down) {
             this.exit();
             return this.knight.states.idle;
         }
@@ -305,11 +354,16 @@ class RunState extends AbstractKnightState {
         }
     }
 }
-RunState.ANIMATION_NAME = "run";
 class KeyboardControls {
     constructor(togglePause) {
         this.togglePause = togglePause;
-        this.userInputModel = { up: false, down: false, left: false, right: false, attack: false };
+        this.userInputModel = {
+            up: false,
+            down: false,
+            left: false,
+            right: false,
+            attack: false,
+        };
     }
     getKeyboardInputs() {
         return this.userInputModel;

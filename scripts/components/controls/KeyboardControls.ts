@@ -1,10 +1,16 @@
 class KeyboardControls {
   private togglePause: () => void;
-  private userInputModel: UserInputModel
+  private userInputModel: UserInputModel;
 
   public constructor(togglePause: () => void) {
     this.togglePause = togglePause;
-    this.userInputModel = {up: false, down: false, left: false, right: false, attack: false}
+    this.userInputModel = {
+      up: false,
+      down: false,
+      left: false,
+      right: false,
+      attack: false,
+    };
   }
 
   getKeyboardInputs(): UserInputModel {
@@ -18,19 +24,19 @@ class KeyboardControls {
           this.togglePause();
           break;
         case "ArrowLeft":
-          this.userInputModel = {...this.userInputModel, left: true}
+          this.userInputModel = { ...this.userInputModel, left: true };
           break;
         case "ArrowRight":
-          this.userInputModel = {...this.userInputModel, right: true}
+          this.userInputModel = { ...this.userInputModel, right: true };
           break;
         case "ArrowUp":
-          this.userInputModel = {...this.userInputModel, up: true}
+          this.userInputModel = { ...this.userInputModel, up: true };
           break;
         case "ArrowDown":
-          this.userInputModel = {...this.userInputModel, down: true}
+          this.userInputModel = { ...this.userInputModel, down: true };
           break;
         case "Space":
-          this.userInputModel = {...this.userInputModel, attack: true}
+          this.userInputModel = { ...this.userInputModel, attack: true };
           break;
       }
     });
@@ -40,19 +46,19 @@ class KeyboardControls {
     window.addEventListener("keyup", (e) => {
       switch (e.code) {
         case "ArrowLeft":
-          this.userInputModel = {...this.userInputModel, left: false}
+          this.userInputModel = { ...this.userInputModel, left: false };
           break;
         case "ArrowRight":
-          this.userInputModel = {...this.userInputModel, right: false}
+          this.userInputModel = { ...this.userInputModel, right: false };
           break;
         case "ArrowUp":
-          this.userInputModel = {...this.userInputModel, up: false}
+          this.userInputModel = { ...this.userInputModel, up: false };
           break;
         case "ArrowDown":
-          this.userInputModel = {...this.userInputModel, down: false}
+          this.userInputModel = { ...this.userInputModel, down: false };
           break;
         case "Space":
-          this.userInputModel = {...this.userInputModel, attack: false}
+          this.userInputModel = { ...this.userInputModel, attack: false };
           break;
       }
     });

@@ -1,33 +1,31 @@
-class Knight implements ControllableInterface {
-    public horizontalPosition = 0;
-    public horizontalFacingDirection: HorizontalMovementEnum;
-    public readonly states: KnightStatesModel
+class Knight extends AbstractMoveableEntity implements ControllableInterface {
+  public readonly states: KnightStatesModel;
+  private currentState: AbstractKnightState;
 
-    private currentState: AbstractKnightState
+  constructor() {
+    super(HorizontalMovementEnum.RIGHT);
 
-    constructor() {
-        this.horizontalFacingDirection = HorizontalMovementEnum.RIGHT;
+    this.states = {
+      idle: new IdleState(this),
+      run: new RunState(this),
+      attack: new AttackState(this),
+      fall: new FallState(this),
+    };
+    this.currentState = this.states.fall;
+  }
 
-        this.states = {
-            idle: new IdleState(this),
-            run: new RunState(this),
-            attack: new AttackState(this),
-        }
-        this.currentState = this.states.idle;
-    }
+  setInput(userInputs: UserInputModel) {
+    const newState = this.currentState.input(userInputs);
+    this.updateCurrentState(newState);
+  }
 
-    setInput(userInputs: UserInputModel) {
-        const newState = this.currentState.input(userInputs);
-        this.updateCurrentState(newState);
-    }
+  draw() {
+    const newState = this.currentState.update();
+    this.updateCurrentState(newState);
+  }
 
-    draw() {
-        const newState = this.currentState.update();
-        this.updateCurrentState(newState);
-    }
-
-    private updateCurrentState(newState: AbstractKnightState | null) {
-        if (!newState) return;
-        this.currentState = newState;
-    }
+  private updateCurrentState(newState: AbstractKnightState | null) {
+    if (!newState) return;
+    this.currentState = newState;
+  }
 }

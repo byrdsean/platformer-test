@@ -3,7 +3,7 @@ class Platformer {
   private canvasInstance: Canvas;
   private pauseControls: PauseControls;
   private knight: Knight;
-  private keyboardControls: KeyboardControls
+  private keyboardControls: KeyboardControls;
 
   constructor() {
     this.canvasInstance = CanvasInstance.getInstance();
@@ -37,7 +37,8 @@ class Platformer {
     ctx.fillStyle = "red";
     ctx.fillRect(0, 0, this.canvasInstance.width, this.canvasInstance.height);
 
-    const interactiveComponent = InteractiveComponentInstance.getCurrentInteractiveComponent();
+    const interactiveComponent =
+      InteractiveComponentInstance.getCurrentInteractiveComponent();
     const keyboardButtons = this.keyboardControls.getKeyboardInputs();
     interactiveComponent?.setInput(keyboardButtons);
     interactiveComponent?.draw();
