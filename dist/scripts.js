@@ -50,9 +50,9 @@ class InteractiveComponentInstance {
 }
 class AbstractMoveableEntity {
     constructor(horizontalFacingDirection) {
-        this.fallingAcceleration = 0.05;
-        this.terminalVelocity = 10;
-        this.gravity = 5;
+        this.jumpSpeed = 5;
+        this.maxFallingSpeed = 5;
+        this.gravity = 0.125;
         this.horizontalPosition = 0;
         this.verticalPosition = 0;
         this.horizontalMovementSpeed = 2;
@@ -127,6 +127,7 @@ class Knight extends AbstractMoveableEntity {
             run: new RunState(this),
             attack: new AttackState(this),
             fall: new FallState(this),
+            jump: new JumpState(this),
         };
         this.currentState = this.states.fall;
     }
@@ -159,6 +160,9 @@ class KnightAnimations {
     static getFallAnimation() {
         return this.buildAnimationFrame("fall.png", 3);
     }
+    static getJumpAnimation() {
+        return this.buildAnimationFrame("jump.png", 3);
+    }
     static buildAnimationFrame(file, numberOfFrames) {
         const image = new Image();
         image.src = `${this.ASSET_FOLDER}/${file}`;
@@ -173,6 +177,36 @@ class KnightAnimations {
 KnightAnimations.ASSET_FOLDER = "./dist/images/knight";
 KnightAnimations.SPRITE_WIDTH_PIXELS = 120;
 KnightAnimations.SPRITE_HEIGHT_PIXELS = 80;
+class KnightHorizontalMovement {
+    constructor(knight) {
+        this.knight = knight;
+        this.horizontalMovement = HorizontalMovementEnum.NONE;
+    }
+    setMovementLeft() {
+        this.horizontalMovement = HorizontalMovementEnum.LEFT;
+        this.knight.horizontalFacingDirection = HorizontalMovementEnum.LEFT;
+    }
+    setMovementRight() {
+        this.horizontalMovement = HorizontalMovementEnum.RIGHT;
+        this.knight.horizontalFacingDirection = HorizontalMovementEnum.RIGHT;
+    }
+    reset() {
+        this.horizontalMovement = HorizontalMovementEnum.NONE;
+    }
+    getHorizontalMovement() {
+        return this.horizontalMovement;
+    }
+    getHorizontalPosDifference() {
+        switch (this.horizontalMovement) {
+            case HorizontalMovementEnum.LEFT:
+                return -this.knight.horizontalMovementSpeed;
+            case HorizontalMovementEnum.RIGHT:
+                return this.knight.horizontalMovementSpeed;
+            default:
+                return 0;
+        }
+    }
+}
 class AbstractKnightState {
     constructor(knight, animation) {
         this.currentFrame = 0;
@@ -226,12 +260,12 @@ class AttackState extends AbstractKnightState {
             AttackState.WAIT_FOR_NEXT_RENDER_MILLISECONDS;
     }
     input(userInputs) {
-        if (this.startedAttack && this.currentFrame == 0) {
-            return this.knight.states.idle;
-        }
         return null;
     }
     update() {
+        if (this.startedAttack && this.currentFrame == 0) {
+            return this.knight.states.idle;
+        }
         this.startedAttack = true;
         this.draw();
         return null;
@@ -245,40 +279,44 @@ AttackState.WAIT_FOR_NEXT_RENDER_MILLISECONDS = 50;
 class FallState extends AbstractKnightState {
     constructor(knight) {
         super(knight, KnightAnimations.getFallAnimation());
+        this.fallingSpeed = 0;
+        this.knightHorizontalMovement = new KnightHorizontalMovement(knight);
         const canvasInstance = CanvasInstance.getInstance();
         this.gameHeight = canvasInstance.height;
-        this.fallingSpeed = knight.gravity;
-        this.horizontalMovement = HorizontalMovementEnum.NONE;
     }
     input(userInputs) {
         if (this.pauseControls.isPaused()) {
             return null;
         }
-        const lowerImageBound = this.getUpdatedVerticalPosition() + this.animation.frameHeight;
-        if (lowerImageBound >= this.gameHeight) {
-            return this.knight.states.idle;
-        }
         if (userInputs.left) {
-            this.horizontalMovement = HorizontalMovementEnum.LEFT;
-            this.knight.horizontalFacingDirection = HorizontalMovementEnum.LEFT;
+            this.knightHorizontalMovement.setMovementLeft();
         }
         else if (userInputs.right) {
-            this.horizontalMovement = HorizontalMovementEnum.RIGHT;
-            this.knight.horizontalFacingDirection = HorizontalMovementEnum.RIGHT;
+            this.knightHorizontalMovement.setMovementRight();
         }
         return null;
     }
     update() {
-        if (!this.pauseControls.isPaused()) {
-            this.knight.verticalPosition = this.getUpdatedVerticalPosition();
-            this.knight.horizontalPosition += this.getHorizontalPosDifference();
+        if (this.pauseControls.isPaused()) {
+            this.draw();
+            return null;
         }
+        const lowerImageBound = this.getUpdatedVerticalPosition() + this.animation.frameHeight;
+        if (lowerImageBound >= this.gameHeight) {
+            const isIdle = this.knightHorizontalMovement.getHorizontalMovement() ==
+                HorizontalMovementEnum.NONE;
+            return isIdle ? this.knight.states.idle : this.knight.states.run;
+        }
+        this.knight.verticalPosition = this.getUpdatedVerticalPosition();
+        this.knight.horizontalPosition +=
+            this.knightHorizontalMovement.getHorizontalPosDifference();
         this.draw();
         return null;
     }
     exit() {
         this.currentFrame = 0;
         this.fallingSpeed = this.knight.gravity;
+        this.knightHorizontalMovement.reset();
     }
     getUpdatedVerticalPosition() {
         const frameLowerVerticalPos = this.knight.verticalPosition + this.animation.frameHeight;
@@ -287,18 +325,8 @@ class FallState extends AbstractKnightState {
             return this.knight.verticalPosition + distanceFromGameHeight;
         }
         const distanceToFall = this.knight.verticalPosition + this.fallingSpeed;
-        this.fallingSpeed = Math.min(this.fallingSpeed + this.knight.fallingAcceleration, this.knight.terminalVelocity);
+        this.fallingSpeed = Math.min(this.fallingSpeed + this.knight.gravity, this.knight.maxFallingSpeed);
         return distanceToFall;
-    }
-    getHorizontalPosDifference() {
-        switch (this.horizontalMovement) {
-            case HorizontalMovementEnum.LEFT:
-                return -this.knight.horizontalMovementSpeed;
-            case HorizontalMovementEnum.RIGHT:
-                return this.knight.horizontalMovementSpeed;
-            default:
-                return 0;
-        }
     }
 }
 class IdleState extends AbstractKnightState {
@@ -312,6 +340,9 @@ class IdleState extends AbstractKnightState {
         if (userInputs.left || userInputs.right) {
             return this.knight.states.run;
         }
+        if (userInputs.up) {
+            return this.knight.states.jump;
+        }
         if (userInputs.attack) {
             return this.knight.states.attack;
         }
@@ -325,10 +356,49 @@ class IdleState extends AbstractKnightState {
         this.currentFrame = 0;
     }
 }
+class JumpState extends AbstractKnightState {
+    constructor(knight) {
+        super(knight, KnightAnimations.getJumpAnimation());
+        this.knightHorizontalMovement = new KnightHorizontalMovement(knight);
+        this.jumpSpeed = this.knight.jumpSpeed;
+    }
+    input(userInputs) {
+        if (this.pauseControls.isPaused()) {
+            return null;
+        }
+        if (userInputs.left) {
+            this.knightHorizontalMovement.setMovementLeft();
+        }
+        else if (userInputs.right) {
+            this.knightHorizontalMovement.setMovementRight();
+        }
+        return null;
+    }
+    update() {
+        if (this.pauseControls.isPaused()) {
+            this.draw();
+            return null;
+        }
+        if (this.jumpSpeed <= 0) {
+            return this.knight.states.fall;
+        }
+        this.knight.horizontalPosition +=
+            this.knightHorizontalMovement.getHorizontalPosDifference();
+        this.knight.verticalPosition -= this.jumpSpeed;
+        this.jumpSpeed -= this.knight.gravity;
+        this.draw();
+        return null;
+    }
+    exit() {
+        this.currentFrame = 0;
+        this.jumpSpeed = this.knight.jumpSpeed;
+        this.knightHorizontalMovement.reset();
+    }
+}
 class RunState extends AbstractKnightState {
     constructor(knight) {
         super(knight, KnightAnimations.getRunAnimation());
-        this.horizontalMovement = HorizontalMovementEnum.NONE;
+        this.knightHorizontalMovement = new KnightHorizontalMovement(knight);
     }
     input(userInputs) {
         if (this.pauseControls.isPaused()) {
@@ -342,12 +412,13 @@ class RunState extends AbstractKnightState {
             return this.knight.states.idle;
         }
         if (userInputs.left) {
-            this.horizontalMovement = HorizontalMovementEnum.LEFT;
-            this.knight.horizontalFacingDirection = HorizontalMovementEnum.LEFT;
+            this.knightHorizontalMovement.setMovementLeft();
         }
         else if (userInputs.right) {
-            this.horizontalMovement = HorizontalMovementEnum.RIGHT;
-            this.knight.horizontalFacingDirection = HorizontalMovementEnum.RIGHT;
+            this.knightHorizontalMovement.setMovementRight();
+        }
+        if (userInputs.up) {
+            return this.knight.states.jump;
         }
         if (userInputs.attack) {
             return this.knight.states.attack;
@@ -356,24 +427,15 @@ class RunState extends AbstractKnightState {
     }
     update() {
         if (!this.pauseControls.isPaused()) {
-            this.knight.horizontalPosition += this.getHorizontalPosDifference();
+            this.knight.horizontalPosition +=
+                this.knightHorizontalMovement.getHorizontalPosDifference();
         }
         this.draw();
         return null;
     }
     exit() {
         this.currentFrame = 0;
-        this.horizontalMovement = HorizontalMovementEnum.NONE;
-    }
-    getHorizontalPosDifference() {
-        switch (this.horizontalMovement) {
-            case HorizontalMovementEnum.LEFT:
-                return -this.knight.horizontalMovementSpeed;
-            case HorizontalMovementEnum.RIGHT:
-                return this.knight.horizontalMovementSpeed;
-            default:
-                return 0;
-        }
+        this.knightHorizontalMovement.reset();
     }
 }
 class KeyboardControls {
@@ -397,19 +459,19 @@ class KeyboardControls {
                     this.togglePause();
                     break;
                 case "ArrowLeft":
-                    this.userInputModel = { ...this.userInputModel, left: true };
+                    this.userInputModel.left = true;
                     break;
                 case "ArrowRight":
-                    this.userInputModel = { ...this.userInputModel, right: true };
+                    this.userInputModel.right = true;
                     break;
                 case "ArrowUp":
-                    this.userInputModel = { ...this.userInputModel, up: true };
+                    this.userInputModel.up = true;
                     break;
                 case "ArrowDown":
-                    this.userInputModel = { ...this.userInputModel, down: true };
+                    this.userInputModel.down = true;
                     break;
                 case "Space":
-                    this.userInputModel = { ...this.userInputModel, attack: true };
+                    this.userInputModel.attack = true;
                     break;
             }
         });
@@ -418,19 +480,19 @@ class KeyboardControls {
         window.addEventListener("keyup", (e) => {
             switch (e.code) {
                 case "ArrowLeft":
-                    this.userInputModel = { ...this.userInputModel, left: false };
+                    this.userInputModel.left = false;
                     break;
                 case "ArrowRight":
-                    this.userInputModel = { ...this.userInputModel, right: false };
+                    this.userInputModel.right = false;
                     break;
                 case "ArrowUp":
-                    this.userInputModel = { ...this.userInputModel, up: false };
+                    this.userInputModel.up = false;
                     break;
                 case "ArrowDown":
-                    this.userInputModel = { ...this.userInputModel, down: false };
+                    this.userInputModel.down = false;
                     break;
                 case "Space":
-                    this.userInputModel = { ...this.userInputModel, attack: false };
+                    this.userInputModel.attack = false;
                     break;
             }
         });

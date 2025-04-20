@@ -9,14 +9,14 @@ class AttackState extends AbstractKnightState {
   }
 
   override input(userInputs: UserInputModel): AbstractKnightState | null {
-    if (this.startedAttack && this.currentFrame == 0) {
-      return this.knight.states.idle;
-    }
-
     return null;
   }
 
   override update(): AbstractKnightState | null {
+    if (this.startedAttack && this.currentFrame == 0) {
+      return this.knight.states.idle;
+    }
+
     this.startedAttack = true;
     this.draw();
     return null;

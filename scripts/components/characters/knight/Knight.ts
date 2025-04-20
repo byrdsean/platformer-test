@@ -10,6 +10,7 @@ class Knight extends AbstractMoveableEntity implements ControllableInterface {
       run: new RunState(this),
       attack: new AttackState(this),
       fall: new FallState(this),
+      jump: new JumpState(this),
     };
     this.currentState = this.states.fall;
   }

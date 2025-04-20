@@ -1,7 +1,7 @@
 abstract class AbstractMoveableEntity {
-  public fallingAcceleration = 0.05;
-  public terminalVelocity = 10;
-  public gravity = 5;
+  public jumpSpeed = 5;
+  public maxFallingSpeed = 5;
+  public gravity = 0.125;
 
   public horizontalPosition = 0;
   public verticalPosition = 0;

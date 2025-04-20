@@ -21,6 +21,10 @@ class KnightAnimations {
     return this.buildAnimationFrame("fall.png", 3);
   }
 
+  static getJumpAnimation(): AnimationFrame {
+    return this.buildAnimationFrame("jump.png", 3);
+  }
+
   private static buildAnimationFrame(
     file: string,
     numberOfFrames: number

@@ -1,23 +1,16 @@
-class RunState extends AbstractKnightState {
+class JumpState extends AbstractKnightState {
   private readonly knightHorizontalMovement: KnightHorizontalMovement;
+  private jumpSpeed: number;
 
   constructor(knight: Knight) {
-    super(knight, KnightAnimations.getRunAnimation());
+    super(knight, KnightAnimations.getJumpAnimation());
     this.knightHorizontalMovement = new KnightHorizontalMovement(knight);
+    this.jumpSpeed = this.knight.jumpSpeed;
   }
 
   override input(userInputs: UserInputModel): AbstractKnightState | null {
     if (this.pauseControls.isPaused()) {
       return null;
-    }
-
-    const areMovementInputsFalse =
-      !userInputs.left &&
-      !userInputs.right &&
-      !userInputs.up &&
-      !userInputs.down;
-    if (areMovementInputsFalse) {
-      return this.knight.states.idle;
     }
 
     if (userInputs.left) {
@@ -26,28 +19,31 @@ class RunState extends AbstractKnightState {
       this.knightHorizontalMovement.setMovementRight();
     }
 
-    if (userInputs.up) {
-      return this.knight.states.jump;
-    }
-
-    if (userInputs.attack) {
-      return this.knight.states.attack;
-    }
-
     return null;
   }
 
   override update(): AbstractKnightState | null {
-    if (!this.pauseControls.isPaused()) {
-      this.knight.horizontalPosition +=
-        this.knightHorizontalMovement.getHorizontalPosDifference();
+    if (this.pauseControls.isPaused()) {
+      this.draw();
+      return null;
     }
+
+    if (this.jumpSpeed <= 0) {
+      return this.knight.states.fall;
+    }
+
+    this.knight.horizontalPosition +=
+      this.knightHorizontalMovement.getHorizontalPosDifference();
+    this.knight.verticalPosition -= this.jumpSpeed;
+    this.jumpSpeed -= this.knight.gravity;
+
     this.draw();
     return null;
   }
 
   override exit(): void {
     this.currentFrame = 0;
+    this.jumpSpeed = this.knight.jumpSpeed;
     this.knightHorizontalMovement.reset();
   }
 }
