@@ -26,6 +26,7 @@ class Knight extends AbstractMoveableEntity implements ControllableInterface {
 
   private updateCurrentState(newState: AbstractKnightState | null) {
     if (!newState) return;
+    this.currentState.exit();
     this.currentState = newState;
   }
 }

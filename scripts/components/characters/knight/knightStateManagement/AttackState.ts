@@ -8,22 +8,21 @@ class AttackState extends AbstractKnightState {
       AttackState.WAIT_FOR_NEXT_RENDER_MILLISECONDS;
   }
 
-  input(userInputs: UserInputModel): AbstractKnightState | null {
+  override input(userInputs: UserInputModel): AbstractKnightState | null {
     if (this.startedAttack && this.currentFrame == 0) {
-      this.exit();
       return this.knight.states.idle;
     }
 
     return null;
   }
 
-  update(): AbstractKnightState | null {
+  override update(): AbstractKnightState | null {
     this.startedAttack = true;
     this.draw();
     return null;
   }
 
-  exit(): void {
+  override exit(): void {
     this.currentFrame = 0;
     this.startedAttack = false;
   }

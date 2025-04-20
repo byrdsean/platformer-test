@@ -1,5 +1,4 @@
 class RunState extends AbstractKnightState {
-  private readonly HORIZONTAL_MOVEMENT_SPEED_PX = 3;
   private horizontalMovement: HorizontalMovementEnum;
 
   constructor(knight: Knight) {
@@ -7,7 +6,7 @@ class RunState extends AbstractKnightState {
     this.horizontalMovement = HorizontalMovementEnum.NONE;
   }
 
-  input(userInputs: UserInputModel): AbstractKnightState | null {
+  override input(userInputs: UserInputModel): AbstractKnightState | null {
     if (this.pauseControls.isPaused()) {
       return null;
     }
@@ -18,7 +17,6 @@ class RunState extends AbstractKnightState {
       !userInputs.up &&
       !userInputs.down;
     if (areMovementInputsFalse) {
-      this.exit();
       return this.knight.states.idle;
     }
 
@@ -31,14 +29,13 @@ class RunState extends AbstractKnightState {
     }
 
     if (userInputs.attack) {
-      this.exit();
       return this.knight.states.attack;
     }
 
     return null;
   }
 
-  update(): AbstractKnightState | null {
+  override update(): AbstractKnightState | null {
     if (!this.pauseControls.isPaused()) {
       this.knight.horizontalPosition += this.getHorizontalPosDifference();
     }
@@ -46,7 +43,7 @@ class RunState extends AbstractKnightState {
     return null;
   }
 
-  exit(): void {
+  override exit(): void {
     this.currentFrame = 0;
     this.horizontalMovement = HorizontalMovementEnum.NONE;
   }
@@ -54,9 +51,9 @@ class RunState extends AbstractKnightState {
   private getHorizontalPosDifference(): number {
     switch (this.horizontalMovement) {
       case HorizontalMovementEnum.LEFT:
-        return -this.HORIZONTAL_MOVEMENT_SPEED_PX;
+        return -this.knight.horizontalMovementSpeed;
       case HorizontalMovementEnum.RIGHT:
-        return this.HORIZONTAL_MOVEMENT_SPEED_PX;
+        return this.knight.horizontalMovementSpeed;
       default:
         return 0;
     }

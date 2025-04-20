@@ -50,9 +50,12 @@ class InteractiveComponentInstance {
 }
 class AbstractMoveableEntity {
     constructor(horizontalFacingDirection) {
+        this.fallingAcceleration = 0.05;
+        this.terminalVelocity = 10;
         this.gravity = 5;
         this.horizontalPosition = 0;
         this.verticalPosition = 0;
+        this.horizontalMovementSpeed = 2;
         this.horizontalFacingDirection = horizontalFacingDirection;
     }
 }
@@ -138,6 +141,7 @@ class Knight extends AbstractMoveableEntity {
     updateCurrentState(newState) {
         if (!newState)
             return;
+        this.currentState.exit();
         this.currentState = newState;
     }
 }
@@ -223,7 +227,6 @@ class AttackState extends AbstractKnightState {
     }
     input(userInputs) {
         if (this.startedAttack && this.currentFrame == 0) {
-            this.exit();
             return this.knight.states.idle;
         }
         return null;
@@ -244,6 +247,8 @@ class FallState extends AbstractKnightState {
         super(knight, KnightAnimations.getFallAnimation());
         const canvasInstance = CanvasInstance.getInstance();
         this.gameHeight = canvasInstance.height;
+        this.fallingSpeed = knight.gravity;
+        this.horizontalMovement = HorizontalMovementEnum.NONE;
     }
     input(userInputs) {
         if (this.pauseControls.isPaused()) {
@@ -251,27 +256,48 @@ class FallState extends AbstractKnightState {
         }
         const lowerImageBound = this.getUpdatedVerticalPosition() + this.animation.frameHeight;
         if (lowerImageBound >= this.gameHeight) {
-            this.exit();
             return this.knight.states.idle;
+        }
+        if (userInputs.left) {
+            this.horizontalMovement = HorizontalMovementEnum.LEFT;
+            this.knight.horizontalFacingDirection = HorizontalMovementEnum.LEFT;
+        }
+        else if (userInputs.right) {
+            this.horizontalMovement = HorizontalMovementEnum.RIGHT;
+            this.knight.horizontalFacingDirection = HorizontalMovementEnum.RIGHT;
         }
         return null;
     }
     update() {
-        this.knight.verticalPosition = this.getUpdatedVerticalPosition();
+        if (!this.pauseControls.isPaused()) {
+            this.knight.verticalPosition = this.getUpdatedVerticalPosition();
+            this.knight.horizontalPosition += this.getHorizontalPosDifference();
+        }
         this.draw();
         return null;
     }
     exit() {
         this.currentFrame = 0;
+        this.fallingSpeed = this.knight.gravity;
     }
     getUpdatedVerticalPosition() {
         const frameLowerVerticalPos = this.knight.verticalPosition + this.animation.frameHeight;
         const distanceFromGameHeight = this.gameHeight - frameLowerVerticalPos;
-        if (distanceFromGameHeight >= this.knight.gravity) {
-            return this.knight.verticalPosition + this.knight.gravity;
-        }
-        else {
+        if (distanceFromGameHeight < this.fallingSpeed) {
             return this.knight.verticalPosition + distanceFromGameHeight;
+        }
+        const distanceToFall = this.knight.verticalPosition + this.fallingSpeed;
+        this.fallingSpeed = Math.min(this.fallingSpeed + this.knight.fallingAcceleration, this.knight.terminalVelocity);
+        return distanceToFall;
+    }
+    getHorizontalPosDifference() {
+        switch (this.horizontalMovement) {
+            case HorizontalMovementEnum.LEFT:
+                return -this.knight.horizontalMovementSpeed;
+            case HorizontalMovementEnum.RIGHT:
+                return this.knight.horizontalMovementSpeed;
+            default:
+                return 0;
         }
     }
 }
@@ -284,11 +310,9 @@ class IdleState extends AbstractKnightState {
             return null;
         }
         if (userInputs.left || userInputs.right) {
-            this.exit();
             return this.knight.states.run;
         }
         if (userInputs.attack) {
-            this.exit();
             return this.knight.states.attack;
         }
         return null;
@@ -304,7 +328,6 @@ class IdleState extends AbstractKnightState {
 class RunState extends AbstractKnightState {
     constructor(knight) {
         super(knight, KnightAnimations.getRunAnimation());
-        this.HORIZONTAL_MOVEMENT_SPEED_PX = 3;
         this.horizontalMovement = HorizontalMovementEnum.NONE;
     }
     input(userInputs) {
@@ -316,7 +339,6 @@ class RunState extends AbstractKnightState {
             !userInputs.up &&
             !userInputs.down;
         if (areMovementInputsFalse) {
-            this.exit();
             return this.knight.states.idle;
         }
         if (userInputs.left) {
@@ -328,7 +350,6 @@ class RunState extends AbstractKnightState {
             this.knight.horizontalFacingDirection = HorizontalMovementEnum.RIGHT;
         }
         if (userInputs.attack) {
-            this.exit();
             return this.knight.states.attack;
         }
         return null;
@@ -347,9 +368,9 @@ class RunState extends AbstractKnightState {
     getHorizontalPosDifference() {
         switch (this.horizontalMovement) {
             case HorizontalMovementEnum.LEFT:
-                return -this.HORIZONTAL_MOVEMENT_SPEED_PX;
+                return -this.knight.horizontalMovementSpeed;
             case HorizontalMovementEnum.RIGHT:
-                return this.HORIZONTAL_MOVEMENT_SPEED_PX;
+                return this.knight.horizontalMovementSpeed;
             default:
                 return 0;
         }

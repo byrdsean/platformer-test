@@ -17,7 +17,7 @@ abstract class AbstractKnightState {
 
   abstract input(userInputs: UserInputModel): AbstractKnightState | null;
   abstract update(): AbstractKnightState | null;
-  protected abstract exit(): void;
+  abstract exit(): void;
 
   protected draw() {
     const frameToDraw = this.currentFrame % this.animation.numberOfFrames;
