@@ -12,6 +12,10 @@ class IdleState extends AbstractKnightState {
       return this.knight.states.run;
     }
 
+    if (userInputs.up) {
+      return this.knight.states.jump;
+    }
+
     if (userInputs.attack) {
       return this.knight.states.attack;
     }
