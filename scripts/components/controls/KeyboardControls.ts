@@ -24,19 +24,19 @@ class KeyboardControls {
           this.togglePause();
           break;
         case "ArrowLeft":
-          this.userInputModel = { ...this.userInputModel, left: true };
+          this.userInputModel.left = true;
           break;
         case "ArrowRight":
-          this.userInputModel = { ...this.userInputModel, right: true };
+          this.userInputModel.right = true;
           break;
         case "ArrowUp":
-          this.userInputModel = { ...this.userInputModel, up: true };
+          this.userInputModel.up = true;
           break;
         case "ArrowDown":
-          this.userInputModel = { ...this.userInputModel, down: true };
+          this.userInputModel.down = true;
           break;
         case "Space":
-          this.userInputModel = { ...this.userInputModel, attack: true };
+          this.userInputModel.attack = true;
           break;
       }
     });
@@ -46,19 +46,19 @@ class KeyboardControls {
     window.addEventListener("keyup", (e) => {
       switch (e.code) {
         case "ArrowLeft":
-          this.userInputModel = { ...this.userInputModel, left: false };
+          this.userInputModel.left = false;
           break;
         case "ArrowRight":
-          this.userInputModel = { ...this.userInputModel, right: false };
+          this.userInputModel.right = false;
           break;
         case "ArrowUp":
-          this.userInputModel = { ...this.userInputModel, up: false };
+          this.userInputModel.up = false;
           break;
         case "ArrowDown":
-          this.userInputModel = { ...this.userInputModel, down: false };
+          this.userInputModel.down = false;
           break;
         case "Space":
-          this.userInputModel = { ...this.userInputModel, attack: false };
+          this.userInputModel.attack = false;
           break;
       }
     });
