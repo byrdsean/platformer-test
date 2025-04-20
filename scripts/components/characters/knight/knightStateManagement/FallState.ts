@@ -1,8 +1,15 @@
-class RunState extends AbstractKnightState {
+class FallState extends AbstractKnightState {
   private horizontalMovement: HorizontalMovementEnum;
+  private gameHeight: number;
+  private fallingSpeed: number;
 
   constructor(knight: Knight) {
-    super(knight, KnightAnimations.getRunAnimation());
+    super(knight, KnightAnimations.getFallAnimation());
+
+    const canvasInstance = CanvasInstance.getInstance();
+    this.gameHeight = canvasInstance.height;
+
+    this.fallingSpeed = knight.gravity;
     this.horizontalMovement = HorizontalMovementEnum.NONE;
   }
 
@@ -11,12 +18,10 @@ class RunState extends AbstractKnightState {
       return null;
     }
 
-    const areMovementInputsFalse =
-      !userInputs.left &&
-      !userInputs.right &&
-      !userInputs.up &&
-      !userInputs.down;
-    if (areMovementInputsFalse) {
+    const lowerImageBound =
+      this.getUpdatedVerticalPosition() + this.animation.frameHeight;
+
+    if (lowerImageBound >= this.gameHeight) {
       return this.knight.states.idle;
     }
 
@@ -28,15 +33,12 @@ class RunState extends AbstractKnightState {
       this.knight.horizontalFacingDirection = HorizontalMovementEnum.RIGHT;
     }
 
-    if (userInputs.attack) {
-      return this.knight.states.attack;
-    }
-
     return null;
   }
 
   override update(): AbstractKnightState | null {
     if (!this.pauseControls.isPaused()) {
+      this.knight.verticalPosition = this.getUpdatedVerticalPosition();
       this.knight.horizontalPosition += this.getHorizontalPosDifference();
     }
     this.draw();
@@ -45,7 +47,26 @@ class RunState extends AbstractKnightState {
 
   override exit(): void {
     this.currentFrame = 0;
-    this.horizontalMovement = HorizontalMovementEnum.NONE;
+    this.fallingSpeed = this.knight.gravity;
+  }
+
+  private getUpdatedVerticalPosition(): number {
+    const frameLowerVerticalPos =
+      this.knight.verticalPosition + this.animation.frameHeight;
+    const distanceFromGameHeight = this.gameHeight - frameLowerVerticalPos;
+
+    if (distanceFromGameHeight < this.fallingSpeed) {
+      return this.knight.verticalPosition + distanceFromGameHeight;
+    }
+
+    const distanceToFall = this.knight.verticalPosition + this.fallingSpeed;
+
+    this.fallingSpeed = Math.min(
+      this.fallingSpeed + this.knight.fallingAcceleration,
+      this.knight.terminalVelocity
+    );
+
+    return distanceToFall;
   }
 
   private getHorizontalPosDifference(): number {
