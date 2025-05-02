@@ -32,6 +32,11 @@ class FallState extends AbstractKnightState {
       return null;
     }
 
+    if (this.isOnFloor()) {
+      console.log("FALL STATE: on floor");
+      return this.knight.states.idle;
+    }
+
     const lowerImageBound =
       this.getUpdatedVerticalPosition() + this.animation.frameHeight;
 

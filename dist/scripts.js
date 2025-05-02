@@ -38,6 +38,34 @@ class FramesPerSecondInstance {
     }
 }
 FramesPerSecondInstance.FPS = 60;
+class CollisionInstance {
+    constructor() { }
+    static getCollidableObjects() {
+        return this.collidableObjects;
+    }
+    static addCollidableObject(collidableObject) {
+        this.collidableObjects = [...this.collidableObjects, collidableObject];
+        return this.collidableObjects;
+    }
+    static areObjectsColliding(collidableObject1, collidableObject2) {
+        const collisionDim1 = collidableObject1.getCollisionDimensions();
+        const collisionDim2 = collidableObject2.getCollisionDimensions();
+        if (collisionDim1.maxX < collisionDim2.minX) {
+            return false;
+        }
+        if (collisionDim2.maxX < collisionDim1.minX) {
+            return false;
+        }
+        if (collisionDim1.maxY < collisionDim2.minY) {
+            return false;
+        }
+        if (collisionDim2.maxY < collisionDim1.minY) {
+            return false;
+        }
+        return true;
+    }
+}
+CollisionInstance.collidableObjects = [];
 class InteractiveComponentInstance {
     constructor() { }
     static getCurrentInteractiveComponent() {
@@ -84,6 +112,17 @@ class Platformer {
         });
         this.keyboardControls.addKeyPressedDown();
         this.keyboardControls.addKeyPressedUp();
+        this.platforms = [
+            new Platform(0, 200),
+            new Platform(220, 200),
+            new Platform(440, 200),
+        ];
+        this.platforms.forEach((platform) => CollisionInstance.addCollidableObject(platform));
+        this.backgroundManager = new BackgroundManager();
+        this.backgroundManager.addBackgroundLayer("layer-2.png", 2400, 720, 0.25);
+        this.backgroundManager.addBackgroundLayer("layer-3.png", 2400, 720, 0.5);
+        this.backgroundManager.addBackgroundLayer("layer-4.png", 2400, 720, 0.75);
+        this.backgroundManager.addBackgroundLayer("layer-5.png", 2400, 720, 1);
     }
     enablePaused() {
         this.pauseControls.setPause(true);
@@ -96,8 +135,12 @@ class Platformer {
             return;
         const ctx = this.canvasInstance.canvasContext;
         ctx.clearRect(0, 0, this.canvasInstance.width, this.canvasInstance.height);
-        ctx.fillStyle = "red";
+        ctx.fillStyle = "lightblue";
         ctx.fillRect(0, 0, this.canvasInstance.width, this.canvasInstance.height);
+        this.backgroundManager.draw();
+        this.platforms.forEach((platform) => {
+            platform.draw();
+        });
         const interactiveComponent = InteractiveComponentInstance.getCurrentInteractiveComponent();
         const keyboardButtons = this.keyboardControls.getKeyboardInputs();
         interactiveComponent?.setInput(keyboardButtons);
@@ -122,6 +165,8 @@ class Platformer {
 class Knight extends AbstractMoveableEntity {
     constructor() {
         super(HorizontalMovementEnum.RIGHT);
+        this.height = 0;
+        this.width = 0;
         this.states = {
             idle: new IdleState(this),
             run: new RunState(this),
@@ -129,7 +174,8 @@ class Knight extends AbstractMoveableEntity {
             fall: new FallState(this),
             jump: new JumpState(this),
         };
-        this.currentState = this.states.fall;
+        this.currentState = this.states.idle;
+        this.currentState.enter();
     }
     setInput(userInputs) {
         const newState = this.currentState.input(userInputs);
@@ -139,11 +185,20 @@ class Knight extends AbstractMoveableEntity {
         const newState = this.currentState.update();
         this.updateCurrentState(newState);
     }
+    getCollisionDimensions() {
+        return {
+            minX: this.horizontalPosition,
+            minY: this.verticalPosition,
+            maxX: this.horizontalPosition + this.width,
+            maxY: this.verticalPosition + this.height
+        };
+    }
     updateCurrentState(newState) {
         if (!newState)
             return;
         this.currentState.exit();
         this.currentState = newState;
+        this.currentState.enter();
     }
 }
 class KnightAnimations {
@@ -214,8 +269,14 @@ class AbstractKnightState {
         this.waitForNextRenderMilliseconds = 100;
         this.knight = knight;
         this.animation = animation;
+        this.knight.height = this.animation.frameHeight;
+        this.knight.width = this.animation.frameWidth;
         this.canvasInstance = CanvasInstance.getInstance();
         this.pauseControls = new PauseControls();
+    }
+    enter() {
+        this.knight.height = this.animation.frameHeight;
+        this.knight.width = this.animation.frameWidth;
     }
     draw() {
         const frameToDraw = this.currentFrame % this.animation.numberOfFrames;
@@ -228,6 +289,12 @@ class AbstractKnightState {
         ctx.scale(scaleContextModel.scaleX, scaleContextModel.scaleY);
         ctx.drawImage(this.animation.imageSource, frameToDraw * this.animation.frameWidth, 0, this.animation.frameWidth, this.animation.frameHeight, scaleContextModel.xPosition, scaleContextModel.yPosition, this.animation.frameWidth, this.animation.frameHeight);
         ctx.restore();
+    }
+    isOnFloor() {
+        const collidedObjects = CollisionInstance
+            .getCollidableObjects()
+            .filter(collidableObject => CollisionInstance.areObjectsColliding(this.knight, collidableObject));
+        return collidedObjects.length !== 0;
     }
     getScaleContextModel() {
         const isFacingLeft = this.knight.horizontalFacingDirection == HorizontalMovementEnum.LEFT;
@@ -301,6 +368,10 @@ class FallState extends AbstractKnightState {
             this.draw();
             return null;
         }
+        if (this.isOnFloor()) {
+            console.log("FALL STATE: on floor");
+            return this.knight.states.idle;
+        }
         const lowerImageBound = this.getUpdatedVerticalPosition() + this.animation.frameHeight;
         if (lowerImageBound >= this.gameHeight) {
             const isIdle = this.knightHorizontalMovement.getHorizontalMovement() ==
@@ -336,6 +407,10 @@ class IdleState extends AbstractKnightState {
     input(userInputs) {
         if (this.pauseControls.isPaused()) {
             return null;
+        }
+        if (!this.isOnFloor()) {
+            console.log("IDLE STATE: not on floor");
+            return this.knight.states.fall;
         }
         if (userInputs.left || userInputs.right) {
             return this.knight.states.run;
@@ -521,6 +596,94 @@ class PauseControls {
         localStorage.removeItem(this.IS_PAUSED);
     }
 }
+class BackgroundLayer {
+    constructor(imageSource, width, height, horizontalPosition, verticalPosition, speed) {
+        this.height = height;
+        this.width = width;
+        this.horizontalPosition = horizontalPosition;
+        this.verticalPosition = verticalPosition;
+        this.speed = speed;
+        this.image = new Image();
+        this.image.src = imageSource;
+    }
+    getHorizontalPosition() {
+        return this.horizontalPosition;
+    }
+    getVerticalPosition() {
+        return this.verticalPosition;
+    }
+    updateHorizontalPosition(delta) {
+        this.horizontalPosition =
+            this.horizontalPosition <= this.width * -1
+                ? //Find the -x offset from 0 (number of pixels we need to place the image to the left of origin)
+                    this.horizontalPosition + this.width
+                : //Move the x position to the left (adjust gamespeed for speed modifier)
+                    this.horizontalPosition - (delta * this.speed);
+    }
+}
+class BackgroundManager {
+    constructor() {
+        this.backgroundLayers = [];
+    }
+    addBackgroundLayer(imageSource, width, height, speed) {
+        const fullSource = `./dist/images/environment/${imageSource}`;
+        const canvas = CanvasInstance.getInstance();
+        const backgroundLayer = new BackgroundLayer(fullSource, width, height, 0, canvas.height - height, speed);
+        this.backgroundLayers.push(backgroundLayer);
+    }
+    draw() {
+        const { canvasContext: ctx, height, width } = CanvasInstance.getInstance();
+        this.backgroundLayers.forEach(backgroundLayer => {
+            const repetitions = Math.ceil(width / backgroundLayer.width) + 1;
+            Array.from({ length: repetitions })
+                .forEach((_, index) => {
+                ctx.drawImage(backgroundLayer.image, backgroundLayer.getHorizontalPosition() + (backgroundLayer.width * index), backgroundLayer.getVerticalPosition());
+            });
+            backgroundLayer.updateHorizontalPosition(BackgroundManager.HORIZONTAL_DISTANCE_TO_MOVE);
+        });
+    }
+}
+BackgroundManager.HORIZONTAL_DISTANCE_TO_MOVE = 5;
+class Platform extends AbstractMoveableEntity {
+    constructor(horizontalPosition, verticalPosition) {
+        super(HorizontalMovementEnum.NONE);
+        this.canvasInstance = CanvasInstance.getInstance();
+        this.animation = PlatformAnimations.getPlatformAnimation();
+        this.horizontalPosition = horizontalPosition;
+        this.verticalPosition = verticalPosition;
+    }
+    draw() {
+        const ctx = this.canvasInstance.canvasContext;
+        ctx.save();
+        ctx.drawImage(this.animation.imageSource, 0, 0, this.animation.frameWidth, this.animation.frameHeight, this.horizontalPosition, this.verticalPosition, this.animation.frameWidth, this.animation.frameHeight);
+        ctx.restore();
+    }
+    getCollisionDimensions() {
+        return {
+            minX: this.horizontalPosition,
+            minY: this.verticalPosition,
+            maxX: this.horizontalPosition + this.animation.frameWidth,
+            maxY: this.verticalPosition + this.animation.frameHeight
+        };
+    }
+}
+class PlatformAnimations {
+    constructor() { }
+    static getPlatformAnimation() {
+        return this.buildAnimationFrame("platform.png", 1, 120, 56);
+    }
+    static buildAnimationFrame(file, numberOfFrames, frameWidth, frameHeight) {
+        const image = new Image();
+        image.src = `${this.ASSET_FOLDER}/${file}`;
+        return {
+            imageSource: image,
+            numberOfFrames: numberOfFrames,
+            frameHeight: frameHeight,
+            frameWidth: frameWidth,
+        };
+    }
+}
+PlatformAnimations.ASSET_FOLDER = "./dist/images/environment";
 const platformer = new Platformer();
 window.addEventListener("resize", () => {
     platformer.enablePaused();

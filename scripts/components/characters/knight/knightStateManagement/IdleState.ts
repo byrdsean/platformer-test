@@ -8,6 +8,11 @@ class IdleState extends AbstractKnightState {
       return null;
     }
 
+    if (!this.isOnFloor()) {
+      console.log("IDLE STATE: not on floor");
+      return this.knight.states.fall;
+    }
+
     if (userInputs.left || userInputs.right) {
       return this.knight.states.run;
     }

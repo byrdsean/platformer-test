@@ -10,7 +10,11 @@ abstract class AbstractKnightState {
 
   constructor(knight: Knight, animation: AnimationFrame) {
     this.knight = knight;
+    
     this.animation = animation;
+    this.knight.height = this.animation.frameHeight;
+    this.knight.width = this.animation.frameWidth;
+
     this.canvasInstance = CanvasInstance.getInstance();
     this.pauseControls = new PauseControls();
   }
@@ -18,6 +22,11 @@ abstract class AbstractKnightState {
   abstract input(userInputs: UserInputModel): AbstractKnightState | null;
   abstract update(): AbstractKnightState | null;
   abstract exit(): void;
+
+  enter() {
+    this.knight.height = this.animation.frameHeight;
+    this.knight.width = this.animation.frameWidth;
+  }
 
   protected draw() {
     const frameToDraw = this.currentFrame % this.animation.numberOfFrames;
@@ -44,6 +53,15 @@ abstract class AbstractKnightState {
     );
 
     ctx.restore();
+  }
+
+  protected isOnFloor(): boolean {
+    const collidedObjects = CollisionInstance
+      .getCollidableObjects()
+      .filter(collidableObject => 
+        CollisionInstance.areObjectsColliding(this.knight, collidableObject)
+      );
+    return collidedObjects.length !== 0;
   }
 
   private getScaleContextModel(): ScaleContextModel {
