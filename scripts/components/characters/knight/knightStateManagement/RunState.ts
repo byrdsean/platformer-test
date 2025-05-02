@@ -11,11 +11,6 @@ class RunState extends AbstractKnightState {
       return null;
     }
 
-    if (!this.isOnFloor()) {
-      console.log("RUN STATE: not on floor");
-      return this.knight.states.fall;
-    }
-
     const areMovementInputsFalse =
       !userInputs.left &&
       !userInputs.right &&
