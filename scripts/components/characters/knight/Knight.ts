@@ -1,6 +1,8 @@
-class Knight extends AbstractMoveableEntity implements ControllableInterface {
+class Knight extends AbstractMoveableEntity implements ControllableInterface, CollisionInterface {
   public readonly states: KnightStatesModel;
   private currentState: AbstractKnightState;
+  public height = 0;
+  public width = 0;
 
   constructor() {
     super(HorizontalMovementEnum.RIGHT);
@@ -12,7 +14,9 @@ class Knight extends AbstractMoveableEntity implements ControllableInterface {
       fall: new FallState(this),
       jump: new JumpState(this),
     };
-    this.currentState = this.states.fall;
+
+    this.currentState = this.states.idle;
+    this.currentState.enter();
   }
 
   setInput(userInputs: UserInputModel) {
@@ -25,9 +29,20 @@ class Knight extends AbstractMoveableEntity implements ControllableInterface {
     this.updateCurrentState(newState);
   }
 
+  getCollisionDimensions(): CollisionModel {
+    return {
+        minX: this.horizontalPosition,
+        minY: this.verticalPosition,
+        maxX: this.horizontalPosition + this.width,
+        maxY: this.verticalPosition + this.height
+    }
+  }
+
   private updateCurrentState(newState: AbstractKnightState | null) {
     if (!newState) return;
     this.currentState.exit();
+
     this.currentState = newState;
+    this.currentState.enter();
   }
 }
